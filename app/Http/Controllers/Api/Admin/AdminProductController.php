@@ -7,6 +7,7 @@ use App\Http\Requests\Product\StoreProductRequest;
 use App\Http\Requests\Product\UpdateProductRequest;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class AdminProductController extends Controller
 {
@@ -28,6 +29,7 @@ class AdminProductController extends Controller
         }
 
         $product = Product::create($validated);
+        Cache::forget('store_active_products_list');
 
         return response()->json([
             'success' => true,
@@ -61,6 +63,7 @@ class AdminProductController extends Controller
         }
 
         $product->update($data);
+        Cache::forget('store_active_products_list');
 
         return response()->json([
             'success' => true,
@@ -82,6 +85,7 @@ class AdminProductController extends Controller
         }
 
         $product->delete();
+        Cache::forget('store_active_products_list');
 
         return response()->json([
             'success' => true,

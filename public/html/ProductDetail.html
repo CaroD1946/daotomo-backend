@@ -282,15 +282,15 @@ async function loadDetail() {
   if (!id) { location.href = '/html/Store.html'; return; }
 
   try {
-    let userRankTier = 0;
+    const promises = [api.getProduct(id)];
     if (api.isLoggedIn()) {
-      try {
-        const r = await api.request('/ranks/my-rank');
-        if (r && r.success) userRankTier = r.current_tier || 0;
-      } catch(e) {}
+      promises.push(api.request('/ranks/my-rank').catch(() => null));
     }
 
-    const { data: p } = await api.getProduct(id);
+    const [prodRes, rankRes] = await Promise.all(promises);
+    let userRankTier = (rankRes && rankRes.success) ? (rankRes.current_tier || 0) : 0;
+
+    const p = prodRes.data;
     currentProduct = p;
     document.title = p.name + ' — Đảo Tò Mò';
 

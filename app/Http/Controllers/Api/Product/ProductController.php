@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 
 class ProductController extends Controller
 {
@@ -14,31 +15,44 @@ class ProductController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        $query = Product::where('is_active', true);
+        $hasFilter = ($request->has('category') && !empty($request->input('category')) && $request->input('category') !== 'all')
+                  || ($request->has('search') && !empty($request->input('search')))
+                  || $request->has('featured');
 
-        if ($request->has('category') && !empty($request->input('category')) && $request->input('category') !== 'all') {
-            $cat = strtolower((string) $request->input('category'));
-            if (in_array($cat, ['vip', 'rank'])) {
-                $query->whereIn('category', ['vip', 'rank']);
-            } else {
-                $query->where('category', $request->input('category'));
-            }
-        }
-
-        if ($request->has('search') && !empty($request->input('search'))) {
-            $search = '%' . trim($request->input('search')) . '%';
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', $search)
-                  ->orWhere('description', 'like', $search)
-                  ->orWhere('short_description', 'like', $search);
+        if (!$hasFilter) {
+            $products = Cache::remember('store_active_products_list', 120, function () {
+                return Product::where('is_active', true)
+                    ->orderBy('sort_order', 'asc')
+                    ->orderBy('id', 'asc')
+                    ->get();
             });
-        }
+        } else {
+            $query = Product::where('is_active', true);
 
-        if ($request->has('featured')) {
-            $query->where('featured', filter_var($request->input('featured'), FILTER_VALIDATE_BOOLEAN));
-        }
+            if ($request->has('category') && !empty($request->input('category')) && $request->input('category') !== 'all') {
+                $cat = strtolower((string) $request->input('category'));
+                if (in_array($cat, ['vip', 'rank'])) {
+                    $query->whereIn('category', ['vip', 'rank']);
+                } else {
+                    $query->where('category', $request->input('category'));
+                }
+            }
 
-        $products = $query->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+            if ($request->has('search') && !empty($request->input('search'))) {
+                $search = '%' . trim($request->input('search')) . '%';
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', $search)
+                      ->orWhere('description', 'like', $search)
+                      ->orWhere('short_description', 'like', $search);
+                });
+            }
+
+            if ($request->has('featured')) {
+                $query->where('featured', filter_var($request->input('featured'), FILTER_VALIDATE_BOOLEAN));
+            }
+
+            $products = $query->orderBy('sort_order', 'asc')->orderBy('id', 'asc')->get();
+        }
 
         return response()->json([
             'success' => true,

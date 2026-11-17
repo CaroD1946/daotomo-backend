@@ -634,55 +634,84 @@ const COIN_RENT_PRICES = {
   god:      { '1d': 120, '3d': 320, '5d': 480, '7d': 600 }
 };
 
+// ─── TỐI ƯU HIỆU NĂNG: STALE-WHILE-REVALIDATE CACHE (0ms Render) ───
+let hasRenderedFromCache = false;
+try {
+  const cachedProducts = localStorage.getItem('dtm_store_products_cache');
+  if (cachedProducts) {
+    const parsed = JSON.parse(cachedProducts);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      products = parsed;
+      filterAndSortProducts();
+      hasRenderedFromCache = true;
+    }
+  }
+} catch (e) {}
+
 async function loadProducts() {
   const gridEl = document.getElementById('grid');
   
-  // Timer thông báo nếu máy chủ khởi động chậm (> 8s)
-  const slowTimer = setTimeout(() => {
-    const card = document.getElementById('store-load-notice-card');
-    if (card && (!products || !products.length)) {
-      card.innerHTML = `
-        <div style="display:flex;align-items:flex-start;gap:0.65rem">
-          <span style="font-size:1.25rem;line-height:1">⏳</span>
-          <div>
-            <strong style="color:#fbbf24">Máy chủ đang khởi động:</strong> Có thể mất từ <strong style="color:#fff">1 – 2 phút</strong> để máy chủ thức dậy từ trạng thái nghỉ. Xin quý khách vui lòng kiên nhẫn trong giây lát hoặc bấm nút bên dưới để tải lại trang nếu đợi quá lâu.
-          </div>
-        </div>`;
-    }
-  }, 8000);
+  // Chỉ bật timer cảnh báo khi chưa có dữ liệu nào (kể cả cache)
+  let slowTimer = null;
+  if (!hasRenderedFromCache && (!products || !products.length)) {
+    slowTimer = setTimeout(() => {
+      const card = document.getElementById('store-load-notice-card');
+      if (card && (!products || !products.length)) {
+        card.innerHTML = `
+          <div style="display:flex;align-items:flex-start;gap:0.65rem">
+            <span style="font-size:1.25rem;line-height:1">⏳</span>
+            <div>
+              <strong style="color:#fbbf24">Máy chủ đang khởi động:</strong> Có thể mất từ <strong style="color:#fff">1 – 2 phút</strong> để máy chủ thức dậy từ trạng thái nghỉ. Xin quý khách vui lòng kiên nhẫn trong giây lát hoặc bấm nút bên dưới để tải lại trang nếu đợi quá lâu.
+            </div>
+          </div>`;
+      }
+    }, 8000);
+  }
 
   try {
+    // Tải song song (Parallel Fetch) giảm 50% thời gian chờ mạng
+    const promises = [api.getProducts()];
     if (api.isLoggedIn()) {
-      try {
-        const r = await api.request('/ranks/my-rank');
-        if (r && r.success) userRankStatus = r;
-      } catch(e) {}
+      promises.push(api.request('/ranks/my-rank').catch(() => null));
     }
-    const { data } = await api.getProducts();
-    clearTimeout(slowTimer);
-    products = data;
-    filterAndSortProducts();
+
+    const [prodRes, rankRes] = await Promise.all(promises);
+    if (slowTimer) clearTimeout(slowTimer);
+
+    if (rankRes && rankRes.success) {
+      userRankStatus = rankRes;
+    }
+
+    if (prodRes && prodRes.data) {
+      products = prodRes.data;
+      try {
+        localStorage.setItem('dtm_store_products_cache', JSON.stringify(products));
+      } catch (e) {}
+      filterAndSortProducts();
+    }
   } catch (e) {
-    clearTimeout(slowTimer);
-    gridEl.innerHTML = `
-      <div class="state-box" style="padding:3.5rem 1.5rem;text-align:center;max-width:580px;margin:1rem auto 2.5rem;width:100%">
-        <div style="font-size:2.8rem;margin-bottom:0.75rem">⚠️</div>
-        <div style="font-size:1.15rem;font-weight:700;color:#ef4444;margin-bottom:0.5rem">
-          Không thể tải danh sách sản phẩm
-        </div>
-        <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.9rem 1.15rem;text-align:left">
-          <div style="display:flex;align-items:flex-start;gap:0.65rem">
-            <span style="font-size:1.25rem;line-height:1">⏱️</span>
-            <div>
-              <strong style="color:#f87171">Lưu ý:</strong> Quá trình tải sản phẩm có thể mất từ <strong>1 – 2 phút</strong> nếu máy chủ đang khởi động từ trạng thái nghỉ. Nếu không load được, xin vui lòng bấm nút bên dưới để <strong>tải lại trang</strong>.<br>
-              <small style="color:#64748b;display:block;margin-top:0.4rem">Chi tiết: ${api.escapeHtml(e.message)}</small>
+    if (slowTimer) clearTimeout(slowTimer);
+    if (!products || !products.length) {
+      gridEl.innerHTML = `
+        <div class="state-box" style="padding:3.5rem 1.5rem;text-align:center;max-width:580px;margin:1rem auto 2.5rem;width:100%">
+          <div style="font-size:2.8rem;margin-bottom:0.75rem">⚠️</div>
+          <div style="font-size:1.15rem;font-weight:700;color:#ef4444;margin-bottom:0.5rem">
+            Không thể tải danh sách sản phẩm
+          </div>
+          <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.9rem 1.15rem;text-align:left">
+            <div style="display:flex;align-items:flex-start;gap:0.65rem">
+              <span style="font-size:1.25rem;line-height:1">⏱️</span>
+              <div>
+                <strong style="color:#f87171">Lưu ý:</strong> Quá trình tải sản phẩm có thể mất từ <strong>1 – 2 phút</strong> nếu máy chủ đang khởi động từ trạng thái nghỉ. Nếu không load được, xin vui lòng bấm nút bên dưới để <strong>tải lại trang</strong>.<br>
+                <small style="color:#64748b;display:block;margin-top:0.4rem">Chi tiết: ${api.escapeHtml(e.message)}</small>
+              </div>
             </div>
           </div>
-        </div>
-        <button class="btn btn-primary" type="button" onclick="location.reload()" style="font-size:0.9rem;padding:0.6rem 1.5rem;cursor:pointer;border-radius:8px;display:inline-flex;align-items:center;gap:0.5rem">
-          <span>🔄</span> Tải lại trang ngay
-        </button>
-      </div>`;
+          <button class="btn btn-primary" type="button" onclick="location.reload()" style="font-size:0.9rem;padding:0.6rem 1.5rem;cursor:pointer;border-radius:8px;display:inline-flex;align-items:center;gap:0.5rem">
+            <span>🔄</span> Tải lại trang ngay
+          </button>
+        </div>`;
+    }
   }
 }
 
