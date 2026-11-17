@@ -948,12 +948,6 @@ async function submitRentRankWithCoins() {
   }
 }
 
-  document.getElementById('modal-step-confirm').style.display = 'block';
-  document.getElementById('modal-step-paid').style.display = 'none';
-  document.getElementById('modal').classList.add('open');
-  if (window.SoundFX) SoundFX.playClick();
-}
-
 function changeQty(delta) {
   const input = document.getElementById('m-qty');
   let val = parseInt(input.value, 10) || 1;
