@@ -371,6 +371,38 @@ nav {
 }
 .input:focus { outline: none; border-color: var(--primary); background: rgba(108,99,255,0.06); }
 .input::placeholder { color: var(--text-muted); }
+
+/* Universal Select & Option Styles (Dark Mode Dropdown Fix) */
+select,
+select.input,
+.input-select,
+.sort-select,
+.admin-select,
+.input-box {
+  color-scheme: dark;
+}
+
+select option,
+.input option,
+select.input option,
+.input-select option,
+.sort-select option,
+.admin-select option,
+.input-box option,
+option {
+  background-color: #121829 !important;
+  color: #f8fafc !important;
+  padding: 8px 12px;
+  font-size: 0.92rem;
+}
+
+select option:checked,
+select option:hover,
+option:checked {
+  background-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
 .form-group { display: flex; flex-direction: column; gap: 0.35rem; margin-bottom: 0.875rem; }
 .form-group label { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); }
 

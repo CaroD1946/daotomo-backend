@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/global.css?v=2.7">
+  <link rel="stylesheet" href="/css/global.css?v=2.8">
   <style>
     .store-hero {
       padding: calc(var(--nav-h) + 1.5rem) 1.25rem 2rem;
@@ -110,10 +110,25 @@
       font-size: 0.88rem;
       font-family: var(--font-display);
       cursor: pointer;
+      color-scheme: dark;
     }
     .sort-select:focus {
       border-color: var(--lagoon);
       outline: none;
+    }
+    select, select.input, .sort-select {
+      color-scheme: dark;
+    }
+    select option, select.input option, .sort-select option,
+    #rent-rank-select option, #rent-duration-select option {
+      background-color: #121829 !important;
+      color: #f8fafc !important;
+      padding: 8px 12px;
+      font-size: 0.9rem;
+    }
+    select option:checked, select option:hover {
+      background-color: #2563eb !important;
+      color: #ffffff !important;
     }
 
     /* Filters pills */
@@ -565,21 +580,21 @@
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem">
         <div>
           <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem">Chọn Rank muốn thuê:</label>
-          <select id="rent-rank-select" class="input" style="padding:0.55rem;font-size:0.88rem" onchange="updateRentCalc()">
-            <option value="knight">Rank Knight</option>
-            <option value="legend">Rank Legend</option>
-            <option value="master">Rank Master</option>
-            <option value="overlord">Rank Overlord</option>
-            <option value="god">Rank God (Tối Thượng)</option>
+          <select id="rent-rank-select" class="input" style="padding:0.55rem;font-size:0.88rem;background-color:#121829;color:#f8fafc;color-scheme:dark" onchange="updateRentCalc()">
+            <option value="knight" style="background-color:#121829;color:#f8fafc">Rank Knight</option>
+            <option value="legend" style="background-color:#121829;color:#f8fafc">Rank Legend</option>
+            <option value="master" style="background-color:#121829;color:#f8fafc">Rank Master</option>
+            <option value="overlord" style="background-color:#121829;color:#f8fafc">Rank Overlord</option>
+            <option value="god" style="background-color:#121829;color:#f8fafc">Rank God (Tối Thượng)</option>
           </select>
         </div>
         <div>
           <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem">Thời hạn thuê:</label>
-          <select id="rent-duration-select" class="input" style="padding:0.55rem;font-size:0.88rem" onchange="updateRentCalc()">
-            <option value="1d">1 Ngày</option>
-            <option value="3d">3 Ngày</option>
-            <option value="5d">5 Ngày</option>
-            <option value="7d" selected>7 Ngày (Tiết kiệm nhất)</option>
+          <select id="rent-duration-select" class="input" style="padding:0.55rem;font-size:0.88rem;background-color:#121829;color:#f8fafc;color-scheme:dark" onchange="updateRentCalc()">
+            <option value="1d" style="background-color:#121829;color:#f8fafc">1 Ngày</option>
+            <option value="3d" style="background-color:#121829;color:#f8fafc">3 Ngày</option>
+            <option value="5d" style="background-color:#121829;color:#f8fafc">5 Ngày</option>
+            <option value="7d" style="background-color:#121829;color:#f8fafc" selected>7 Ngày (Tiết kiệm nhất)</option>
           </select>
         </div>
       </div>
