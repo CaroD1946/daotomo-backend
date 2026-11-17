@@ -2,15 +2,234 @@
 
 namespace App\Services\Order;
 
+use App\Models\GameDeliveryQueue;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
+use App\Services\Order\OrderDeliveryService;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class OrderService
 {
+    /**
+     * Coin rental pricing for temporary ranks (Days => Coins)
+     */
+    public const COIN_RENT_PRICING = [
+        'knight'   => ['1d' => 30,  '3d' => 80,  '5d' => 120, '7d' => 150],
+        'legend'   => ['1d' => 50,  '3d' => 135, '5d' => 200, '7d' => 250],
+        'master'   => ['1d' => 70,  '3d' => 190, '5d' => 280, '7d' => 350],
+        'overlord' => ['1d' => 90,  '3d' => 245, '5d' => 360, '7d' => 450],
+        'god'      => ['1d' => 120, '3d' => 320, '5d' => 480, '7d' => 600],
+    ];
+
+    /**
+     * Map rank identifier or slug to integer tier level (1 to 5).
+     */
+    public static function getRankTier(string $identifier): int
+    {
+        $id = strtolower(trim(str_replace(['rank-', 'rank_'], '', $identifier)));
+        return match ($id) {
+            'knight'   => 1,
+            'legend'   => 2,
+            'master'   => 3,
+            'overlord' => 4,
+            'god'      => 5,
+            default    => 0,
+        };
+    }
+
+    /**
+     * Map tier level to human readable Rank title.
+     */
+    public static function getRankTitleByTier(int $tier): string
+    {
+        return match ($tier) {
+            1 => 'Knight',
+            2 => 'Legend',
+            3 => 'Master',
+            4 => 'Overlord',
+            5 => 'God',
+            default => 'Chưa có',
+        };
+    }
+
+    /**
+     * Detect user's current highest owned rank tier from paid/completed orders.
+     */
+    public static function getUserHighestRankTier(?User $user, ?string $mcUsername = null): array
+    {
+        if (!$user && empty($mcUsername)) {
+            return ['tier' => 0, 'rank_name' => 'Chưa có'];
+        }
+
+        $highestTier = 0;
+
+        // 1. Check orders by user_id
+        if ($user) {
+            $paidOrders = Order::with('items.product')
+                ->where('user_id', $user->id)
+                ->whereIn('payment_status', ['paid', 'completed'])
+                ->get();
+
+            foreach ($paidOrders as $ord) {
+                foreach ($ord->items as $it) {
+                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: '');
+                    if ($tier > $highestTier) {
+                        $highestTier = $tier;
+                    }
+                }
+            }
+        }
+
+        // 2. Also check orders by minecraft_username if provided
+        $mcName = $mcUsername ?: $user?->minecraft_username;
+        if (!empty($mcName)) {
+            $mcOrders = Order::with('items.product')
+                ->where('minecraft_username', $mcName)
+                ->whereIn('payment_status', ['paid', 'completed'])
+                ->get();
+
+            foreach ($mcOrders as $ord) {
+                foreach ($ord->items as $it) {
+                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: '');
+                    if ($tier > $highestTier) {
+                        $highestTier = $tier;
+                    }
+                }
+            }
+        }
+
+        return [
+            'tier' => $highestTier,
+            'rank_name' => self::getRankTitleByTier($highestTier),
+        ];
+    }
+
+    /**
+     * Rent Rank using Coins directly from Web "Kho Xu".
+     */
+    public function rentRankWithCoins(User $user, string $rank, string $duration, ?string $minecraftUsername = null): array
+    {
+        $rank = strtolower(trim(str_replace(['rank-', 'rank_'], '', $rank)));
+        $duration = strtolower(trim($duration));
+        if (is_numeric($duration)) {
+            $duration .= 'd';
+        }
+
+        if (!isset(self::COIN_RENT_PRICING[$rank])) {
+            return [
+                'status' => 400,
+                'data' => ['success' => false, 'message' => 'Rank không hợp lệ. Hỗ trợ: Knight, Legend, Master, Overlord, God.'],
+            ];
+        }
+
+        if (!isset(self::COIN_RENT_PRICING[$rank][$duration])) {
+            return [
+                'status' => 400,
+                'data' => ['success' => false, 'message' => 'Thời hạn thuê không hợp lệ. Hỗ trợ: 1d, 3d, 5d, 7d.'],
+            ];
+        }
+
+        $costCoins = self::COIN_RENT_PRICING[$rank][$duration];
+        $targetTier = self::getRankTier($rank);
+        $player = !empty($minecraftUsername) ? trim($minecraftUsername) : ($user->minecraft_username ?? '');
+
+        if (empty($player)) {
+            return [
+                'status' => 400,
+                'data' => ['success' => false, 'message' => 'Vui lòng liên kết tài khoản Minecraft hoặc nhập tên nhân vật game để nhận Rank.'],
+            ];
+        }
+
+        // Rank restriction: check if user already has permanent equal or higher rank
+        $userHighest = self::getUserHighestRankTier($user, $player);
+        if ($userHighest['tier'] >= $targetTier) {
+            $ownedTitle = self::getRankTitleByTier($userHighest['tier']);
+            return [
+                'status' => 422,
+                'data' => [
+                    'success' => false,
+                    'message' => "Bạn đã sở hữu Rank {$ownedTitle} (Cấp {$userHighest['tier']}). Không cần thuê thêm Rank này hoặc các Rank cấp nhỏ hơn!",
+                ],
+            ];
+        }
+
+        if ($user->coins < $costCoins) {
+            return [
+                'status' => 422,
+                'data' => [
+                    'success' => false,
+                    'message' => "Số dư không đủ. Cần {$costCoins} Coins, bạn hiện có {$user->coins} Coins. Vui lòng nạp thêm Coins!",
+                ],
+            ];
+        }
+
+        // Deduct coins atomically
+        $user->decrement('coins', $costCoins);
+
+        $rankTitle = self::getRankTitleByTier($targetTier);
+        $randomHex = strtoupper(bin2hex(random_bytes(3)));
+        $orderCode = "COIN-{$randomHex}";
+
+        // Record completed order in DB
+        $order = Order::create([
+            'order_code' => $orderCode,
+            'user_id' => $user->id,
+            'minecraft_username' => $player,
+            'note' => "Thuê Rank {$rankTitle} ({$duration}) bằng {$costCoins} Coins",
+            'payment_method' => 'coins',
+            'total_amount' => $costCoins,
+            'order_status' => 'delivered',
+            'payment_status' => 'paid',
+            'status' => 'paid',
+            'transfer_content' => "COIN {$randomHex}",
+            'status_history' => [
+                [
+                    'status' => 'paid',
+                    'timestamp' => now()->toIso8601String(),
+                    'note' => "Thanh toán bằng {$costCoins} Coins từ Kho Xu",
+                ],
+                [
+                    'status' => 'delivered',
+                    'timestamp' => now()->toIso8601String(),
+                    'note' => "Đã kích hoạt Rank {$rankTitle} thời hạn {$duration} in-game qua LuckPerms",
+                ],
+            ],
+        ]);
+
+        // Queue in-game temporary delivery
+        GameDeliveryQueue::create([
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'game_username' => $player,
+            'game_uuid' => $user->minecraft_uuid,
+            'command' => "lp user {$player} parent addtemp {$rank} {$duration}",
+            'type' => 'rank_rent_coin',
+            'status' => 'pending',
+        ]);
+
+        GameDeliveryQueue::create([
+            'order_id' => $order->id,
+            'user_id' => $user->id,
+            'game_username' => $player,
+            'game_uuid' => $user->minecraft_uuid,
+            'command' => "broadcast &e&lĐẢO TÒ MÒ &8» &fNgười chơi &a{$player} &fvừa thuê thành công &b&lRank {$rankTitle} ({$duration}) &fbằng Coins!",
+            'type' => 'rank_rent_coin',
+            'status' => 'pending',
+        ]);
+
+        return [
+            'status' => 200,
+            'data' => [
+                'success' => true,
+                'message' => "Thuê Rank {$rankTitle} ({$duration}) thành công với {$costCoins} Coins! Hệ thống đang kích hoạt in-game.",
+                'remaining_coins' => $user->fresh()->coins,
+                'order' => $order,
+            ],
+        ];
+    }
     /**
      * Process order creation with DB product verification, transaction safety, and idempotency.
      *
@@ -131,6 +350,25 @@ class OrderService
                 ];
             }
 
+            // Rank Tier Restriction: Players cannot re-buy an owned rank or buy a lower rank tier
+            $targetRankTier = self::getRankTier($product->game_reward ?: $product->slug);
+            if ($targetRankTier > 0) {
+                $userHighest = self::getUserHighestRankTier($user, $minecraftUsername);
+                if ($userHighest['tier'] >= $targetRankTier) {
+                    $ownedTitle = self::getRankTitleByTier($userHighest['tier']);
+                    return [
+                        'status' => 422,
+                        'data' => [
+                            'success' => false,
+                            'message' => "Bạn đã sở hữu Rank {$ownedTitle} (Cấp {$userHighest['tier']}). Không thể mua thêm Rank này hoặc các Rank cấp nhỏ hơn!",
+                            'current_rank' => $ownedTitle,
+                            'current_tier' => $userHighest['tier'],
+                            'target_tier' => $targetRankTier,
+                        ],
+                    ];
+                }
+            }
+
             $price = (float) $product->price;
             $subtotal = $price * $quantity;
             $totalAmount += $subtotal;
@@ -149,6 +387,18 @@ class OrderService
         $orderCode = "DTM-{$randomHex}";
         $transferContent = "DTM {$randomHex}";
 
+        if ($paymentMethod === 'coins') {
+            if ($user->coins < $totalAmount) {
+                return [
+                    'status' => 422,
+                    'data' => [
+                        'success' => false,
+                        'message' => 'Số dư Xu không đủ. Cần ' . number_format($totalAmount) . ' Xu, bạn hiện có ' . number_format($user->coins) . ' Xu.',
+                    ],
+                ];
+            }
+        }
+
         $finalMcUsername = !empty($minecraftUsername) ? $minecraftUsername : ($user->minecraft_username ?? '');
 
         try {
@@ -159,9 +409,9 @@ class OrderService
                 'note' => $note,
                 'payment_method' => $paymentMethod,
                 'total_amount' => $totalAmount,
-                'order_status' => 'pending',
-                'payment_status' => 'pending',
-                'status' => 'pending',
+                'order_status' => $paymentMethod === 'coins' ? 'processing' : 'pending',
+                'payment_status' => $paymentMethod === 'coins' ? 'paid' : 'pending',
+                'status' => $paymentMethod === 'coins' ? 'paid' : 'pending',
                 'transfer_content' => $transferContent,
                 'idempotency_key' => $idempotencyKey,
                 'status_history' => [
@@ -176,6 +426,11 @@ class OrderService
             foreach ($orderItemsData as $data) {
                 $data['order_id'] = $createdOrder->id;
                 OrderItem::create($data);
+            }
+
+            if ($paymentMethod === 'coins') {
+                $user->decrement('coins', $totalAmount);
+                app(OrderDeliveryService::class)->queueDelivery($createdOrder);
             }
 
             $order = $createdOrder->fresh(['items']);

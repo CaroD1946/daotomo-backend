@@ -212,4 +212,43 @@ class OrderController extends Controller
 
         return response()->json($result['data'], $result['status']);
     }
+
+    /**
+     * Rent rank temporarily using Coins.
+     */
+    public function rentRankWithCoins(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Bạn cần đăng nhập để thuê Rank bằng Coins.'], 401);
+        }
+
+        $rank = (string) $request->input('rank', '');
+        $duration = (string) $request->input('duration', '1d');
+        $minecraftUsername = (string) $request->input('minecraftUsername', '');
+
+        $result = $this->orderService->rentRankWithCoins($user, $rank, $duration, $minecraftUsername);
+
+        return response()->json($result['data'], $result['status']);
+    }
+
+    /**
+     * Get user's current highest rank status.
+     */
+    public function myRankStatus(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Unauthenticated.'], 401);
+        }
+
+        $highest = OrderService::getUserHighestRankTier($user);
+
+        return response()->json([
+            'success' => true,
+            'current_rank' => $highest['rank_name'],
+            'current_tier' => $highest['tier'],
+            'rent_pricing' => OrderService::COIN_RENT_PRICING,
+        ]);
+    }
 }

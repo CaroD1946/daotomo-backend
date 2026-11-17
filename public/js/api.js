@@ -308,6 +308,20 @@ const api = {
     const u = api.getUser();
     return !!(u && (u.role === 'admin' || u.is_admin || u.role === 'ADMIN'));
   },
+  syncNavAuth() {
+    const navAcc = document.getElementById('nav-account-link');
+    if (!navAcc) return;
+    const label = navAcc.querySelector('span:last-child');
+    if (this.isLoggedIn()) {
+      const u = this.getUser();
+      const displayName = u?.username || u?.name || 'Tài khoản';
+      if (label) label.textContent = displayName;
+      else navAcc.textContent = displayName;
+    } else {
+      if (label) label.textContent = 'Tài khoản';
+      else navAcc.textContent = 'Tài khoản';
+    }
+  },
   setSession(token, user) {
     // Always wipe legacy unscoped key so switching accounts never leaks skins across users
     localStorage.removeItem('dtm_custom_skin');
@@ -316,6 +330,7 @@ const api = {
       this.normalizeUserAssets(user);
       localStorage.setItem('dtm_user', JSON.stringify(user));
     }
+    this.syncNavAuth();
     try {
       const skinUrl = this.getActiveSkinUrl(user || null);
       window.dispatchEvent(new CustomEvent('daotomo:skin-updated', { detail: { skinUrl } }));
@@ -326,6 +341,7 @@ const api = {
     localStorage.removeItem('dtm_token');
     localStorage.removeItem('dtm_user');
     localStorage.removeItem('dtm_custom_skin');
+    this.syncNavAuth();
     try {
       window.dispatchEvent(new CustomEvent('daotomo:skin-updated', { detail: { skinUrl: '/img/steve.png' } }));
       window.dispatchEvent(new CustomEvent('daotomo:auth-changed', { detail: { user: null } }));
@@ -1729,13 +1745,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (a.getAttribute('href')?.includes(cur)) a.classList.add('active');
   });
 
-  // Show username
-  const navAcc = document.getElementById('nav-account-link');
-  if (navAcc && api.isLoggedIn()) {
-    const u = api.getUser();
-    const label = navAcc.querySelector('span:last-child');
-    if (u && label) label.textContent = u.username;
-    else if (u) navAcc.textContent = u.username;
+  // Sync navigation account link strictly with session state
+  if (typeof api !== 'undefined' && typeof api.syncNavAuth === 'function') {
+    api.syncNavAuth();
   }
 
   /* ── Scroll-reveal for any .reveal element on any page ── */
@@ -1978,3 +1990,10 @@ function initCarousels(root = document) {
   });
 }
 window.initCarousels = initCarousels;
+
+// Global auth change listener to keep navigation strictly updated
+window.addEventListener('daotomo:auth-changed', () => {
+  if (typeof api !== 'undefined' && typeof api.syncNavAuth === 'function') {
+    api.syncNavAuth();
+  }
+});

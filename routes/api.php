@@ -48,7 +48,7 @@ Route::get('/health', function () {
 Route::prefix('auth')->group(function () {
     Route::middleware('throttle:60,1')->post('/register', [AuthController::class, 'register']);
     Route::middleware('throttle:60,1')->post('/login', [AuthController::class, 'login']);
-    Route::middleware('throttle:30,1')->post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
+    Route::middleware('throttle:5,1')->post('/forgot-password', [PasswordResetController::class, 'forgotPassword']);
     Route::middleware('throttle:30,1')->post('/reset-password/{token}', [PasswordResetController::class, 'resetPassword']);
 
     // OAuth: Discord
@@ -93,6 +93,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/orders/{id}', [OrderController::class, 'show']);
     Route::put('/orders/{id}/cancel', [OrderController::class, 'cancel']);
     Route::put('/orders/{id}/payment-proof', [OrderController::class, 'submitPaymentProof']);
+
+    // Rank Purchase & Rent with Coins
+    Route::get('/ranks/my-rank', [OrderController::class, 'myRankStatus']);
+    Route::post('/ranks/rent-with-coins', [OrderController::class, 'rentRankWithCoins']);
 
     // Checkin daily
     Route::post('/checkin', [CheckinController::class, 'store']);

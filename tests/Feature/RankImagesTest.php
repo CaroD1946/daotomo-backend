@@ -75,7 +75,7 @@ class RankImagesTest extends TestCase
     {
         $this->seed();
 
-        $coinRes = $this->getJson('/api/products/goi-coin-minecraft-100k');
+        $coinRes = $this->getJson('/api/products/goi-500-coins');
         $coinRes->assertStatus(200)
             ->assertJsonPath('data.image', '/img/coins.png');
 

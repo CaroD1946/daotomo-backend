@@ -20,13 +20,14 @@ Route::get('/index.html', function () {
     return response()->file(public_path('index.html'));
 });
 
+// API Fallback for unmapped API routes across all HTTP methods
+Route::any('/api/{any}', function () {
+    return response()->json(['success' => false, 'message' => 'API route not found'], 404);
+})->where('any', '.*');
+
 // Fallback for HTML pages or SPA routes
 Route::fallback(function () {
     $uri = request()->path();
-
-    if (str_starts_with($uri, 'api/')) {
-        return response()->json(['success' => false, 'message' => 'API route not found'], 404);
-    }
 
     $filePath = public_path($uri);
     if (File::exists($filePath) && is_file($filePath)) {

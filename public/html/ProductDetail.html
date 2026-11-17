@@ -184,7 +184,21 @@
 
 <div class="page-body">
   <div class="detail-wrap reveal" id="detail-wrap">
-    <div style="text-align:center;padding:5rem 0"><div class="spinner"></div></div>
+    <div style="text-align:center;padding:4rem 1.5rem;max-width:550px;margin:0 auto">
+      <div class="spinner" style="margin:0 auto 1.25rem;width:42px;height:42px;border-width:3px"></div>
+      <div style="font-size:1.15rem;font-weight:700;color:#fff;margin-bottom:0.6rem">Đang tải thông tin sản phẩm...</div>
+      <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.85rem 1.1rem;text-align:left">
+        <div style="display:flex;align-items:flex-start;gap:0.6rem">
+          <span style="font-size:1.15rem;line-height:1">⚠️</span>
+          <div>
+            <strong style="color:#fbbf24">Lưu ý:</strong> Quá trình tải có thể mất từ <strong style="color:#fff">1 – 2 phút</strong> do hệ thống máy chủ khởi động từ trạng thái nghỉ. Nếu không tải được, xin vui lòng <strong>tải lại trang</strong>.
+          </div>
+        </div>
+      </div>
+      <button class="btn btn-outline" type="button" onclick="location.reload()" style="font-size:0.85rem;padding:0.5rem 1.25rem;cursor:pointer;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;display:inline-flex;align-items:center;gap:0.4rem">
+        <span>🔄</span> Tải lại trang
+      </button>
+    </div>
   </div>
 
   <div class="related" id="related" style="display:none">
@@ -268,6 +282,14 @@ async function loadDetail() {
   if (!id) { location.href = '/html/Store.html'; return; }
 
   try {
+    let userRankTier = 0;
+    if (api.isLoggedIn()) {
+      try {
+        const r = await api.request('/ranks/my-rank');
+        if (r && r.success) userRankTier = r.current_tier || 0;
+      } catch(e) {}
+    }
+
     const { data: p } = await api.getProduct(id);
     currentProduct = p;
     document.title = p.name + ' — Đảo Tò Mò';
@@ -276,7 +298,26 @@ async function loadDetail() {
     const safeImg  = api.escapeHtml(api.safeUrl(p.image, '/img/logo.jpg'));
     const safeCat  = api.escapeHtml(categoryLabel[p.category] || p.category);
     const safeDesc = api.escapeHtml(p.description || '');
-    const safeRew  = api.escapeHtml(p.gameReward || 'Nhận trực tiếp trong game');
+    const safeRew  = api.escapeHtml(p.gameReward || p.game_reward || 'Nhận trực tiếp trong game');
+
+    const rankTierMap = {
+      'rank-knight': 1, 'rank_knight': 1,
+      'rank-legend': 2, 'rank_legend': 2,
+      'rank-master': 3, 'rank_master': 3,
+      'rank-overlord': 4, 'rank_overlord': 4,
+      'rank-god': 5, 'rank_god': 5
+    };
+    const pTier = rankTierMap[p.slug] || rankTierMap[p.gameReward] || rankTierMap[p.game_reward] || 0;
+    const isOwnedOrLower = (pTier > 0 && userRankTier >= pTier);
+
+    let buyBtnText = p.inStock ? '🛒 Mua ngay — ' + Number(p.price || 0).toLocaleString('vi-VN') + 'đ' : 'Hết hàng';
+    let buyBtnDisabled = !p.inStock;
+    if (isOwnedOrLower) {
+      buyBtnDisabled = true;
+      buyBtnText = (userRankTier === pTier) ? '🔒 Đã sở hữu Rank này' : '🔒 Đã có Rank cấp cao hơn';
+    } else if (pTier > 0 && userRankTier > 0) {
+      buyBtnText = '⚡ Nâng cấp lên ' + safeName + ' — ' + Number(p.price || 0).toLocaleString('vi-VN') + 'đ';
+    }
 
     document.getElementById('detail-wrap').innerHTML = `
       <div class="breadcrumb">
@@ -327,8 +368,8 @@ async function loadDetail() {
 
           <div class="detail-actions">
             <a href="/html/Store.html" class="btn-back">← Cửa hàng</a>
-            <button class="btn-buy-now" id="buy-btn" onclick="handleBuy()" ${!p.inStock ? 'disabled' : ''}>
-              ${p.inStock ? '🛒 Mua ngay — ' + p.price.toLocaleString('vi-VN') + 'đ' : 'Hết hàng'}
+            <button class="btn-buy-now" id="buy-btn" onclick="handleBuy()" ${buyBtnDisabled ? 'disabled' : ''}>
+              ${buyBtnText}
             </button>
           </div>
         </div>
@@ -338,8 +379,20 @@ async function loadDetail() {
     loadRelated(p._id, p.category);
   } catch (e) {
     document.getElementById('detail-wrap').innerHTML =
-      `<div style="text-align:center;padding:4rem;color:var(--text-muted)">
-        ⚠️ Không tìm thấy sản phẩm. <a href="/html/Store.html" style="color:var(--lagoon)">Quay lại cửa hàng</a>
+      `<div style="text-align:center;padding:3.5rem 1.5rem;max-width:550px;margin:0 auto">
+        <div style="font-size:2.5rem;margin-bottom:0.75rem">⚠️</div>
+        <div style="font-size:1.15rem;font-weight:700;color:#ef4444;margin-bottom:0.5rem">Không thể tải thông tin sản phẩm</div>
+        <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.85rem 1.1rem;text-align:left">
+          Lần đầu tải có thể mất 1 – 2 phút nếu máy chủ đang khởi động lại. Xin vui lòng <strong>tải lại trang</strong> hoặc quay về cửa hàng.
+        </div>
+        <div style="display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap">
+          <button class="btn btn-primary" type="button" onclick="location.reload()" style="font-size:0.88rem;padding:0.55rem 1.25rem;cursor:pointer;border-radius:8px">
+            🔄 Tải lại trang
+          </button>
+          <a href="/html/Store.html" class="btn btn-outline" style="font-size:0.88rem;padding:0.55rem 1.25rem;text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.2);color:#fff">
+            ← Về Cửa hàng
+          </a>
+        </div>
       </div>`;
   }
 }

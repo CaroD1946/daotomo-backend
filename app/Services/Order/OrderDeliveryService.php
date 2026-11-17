@@ -51,6 +51,15 @@ class OrderDeliveryService
 
             $commands = $this->buildCommandsForReward($gameReward, $player);
 
+            // Sync Web coins balance for registered users on coin pack purchase
+            if ($order->user && str_starts_with($gameReward, 'coin_')) {
+                $rawCoinStr = substr($gameReward, 5);
+                $coinQty = ($rawCoinStr === '100k') ? 100000 : (int) $rawCoinStr;
+                if ($coinQty > 0) {
+                    $order->user->increment('coins', $coinQty * $item->quantity);
+                }
+            }
+
             for ($qty = 0; $qty < $item->quantity; $qty++) {
                 foreach ($commands as $cmd) {
                     GameDeliveryQueue::create([
@@ -90,12 +99,17 @@ class OrderDeliveryService
             ];
         }
 
-        // Coin Rewards
-        if ($reward === 'coin_100k') {
-            return [
-                "coins give {$player} 100000",
-                "tellraw {$player} {\"text\":\"[Đảo Tò Mò] Bạn đã nhận được 100.000 Coin!\",\"color\":\"green\"}",
-            ];
+        // Coin Rewards: coin_500, coin_1050, coin_2700, coin_5600, coin_11500, coin_30000, coin_100k
+        if (str_starts_with($reward, 'coin_')) {
+            $rawCoinStr = substr($reward, 5);
+            $amount = ($rawCoinStr === '100k') ? 100000 : (int) $rawCoinStr;
+            if ($amount > 0) {
+                $formatted = number_format($amount);
+                return [
+                    "coins give {$player} {$amount}",
+                    "tellraw {$player} {\"text\":\"[Đảo Tò Mò] Bạn đã nhận được {$formatted} Coin! Cảm ơn bạn đã ủng hộ!\",\"color\":\"gold\"}",
+                ];
+            }
         }
 
         // Crate Rewards

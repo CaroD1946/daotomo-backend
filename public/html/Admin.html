@@ -724,6 +724,11 @@ const catLabel = { crate:'📦 Hòm', cosmetic:'✨ Cosmetic', pet:'🐾 Pet', k
 
 /* ── Auth check ── */
 document.addEventListener('DOMContentLoaded', async () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const qToken = urlParams.get('token');
+  if (qToken) {
+    localStorage.setItem('dtm_token', qToken);
+  }
   if (!api.isLoggedIn()) {
     document.getElementById('auth-check').classList.remove('hidden');
     document.getElementById('auth-check').textContent = '⛔ Bạn chưa đăng nhập.';
