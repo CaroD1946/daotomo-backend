@@ -431,6 +431,7 @@ let currentProduct = null;
 let currentPurchaseMode = 'vnd';
 let selectedDuration = '7d';
 let userRankTier = 0;
+let userRankStatus = { current_tier: 0, current_rank: 'Chưa có' };
 
 const RANK_DETAILS = {
   knight: {
@@ -535,7 +536,13 @@ async function loadDetail() {
     }
 
     const [prodRes, rankRes] = await Promise.all(promises);
-    userRankTier = (rankRes && rankRes.success) ? (rankRes.current_tier || 0) : 0;
+    if (rankRes && rankRes.success) {
+      userRankStatus = rankRes;
+      userRankTier = rankRes.current_tier || 0;
+    } else {
+      userRankStatus = { current_tier: 0, current_rank: 'Chưa có' };
+      userRankTier = 0;
+    }
 
     const p = prodRes.data;
     currentProduct = p;
@@ -570,14 +577,35 @@ async function loadDetail() {
     let rankShowcaseHtml = '';
 
     if (rankMeta) {
+      // Thiết lập trạng thái chặn thuê rank theo ngày nếu đã có rank bằng hoặc cao hơn
+      let rentBtnText = `⚡ Kích Hoạt Thuê ${rankMeta.name} (${rankMeta.coinPricing[selectedDuration]} Coins)`;
+      let rentBtnDisabled = false;
+      let rentNoticeHtml = '';
+
+      if (isOwnedOrLower) {
+        rentBtnDisabled = true;
+        const isExact = (userRankTier === pTier);
+        rentBtnText = `🔒 ${isExact ? 'Đã sở hữu vĩnh viễn Rank này' : 'Đã có Rank cấp cao hơn (' + (userRankStatus.current_rank || 'Cấp ' + userRankTier) + ')'}`;
+        rentNoticeHtml = `
+          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1rem;font-size:0.86rem;color:#fca5a5;display:flex;align-items:flex-start;gap:0.65rem;line-height:1.5">
+            <span style="font-size:1.2rem;line-height:1">🔒</span>
+            <div>
+              <strong style="color:#ef4444">Không thể thuê theo ngày:</strong> ${isExact ? 'Bạn đã sở hữu vĩnh viễn Rank này.' : 'Bạn đã có Rank cấp cao hơn (' + (userRankStatus.current_rank || 'Cấp ' + userRankTier) + ').'} Tính năng thuê theo ngày đã được khóa vì bạn đã có cấp bậc này hoặc cao hơn.
+            </div>
+          </div>
+        `;
+      }
+
       // Sản phẩm là VIP Rank: Hiển thị 2 Tab Mua Vĩnh Viễn / Thuê Theo Ngày (Coins)
       purchaseAreaHtml = `
         <div class="mode-tabs">
           <button class="mode-tab-btn ${currentPurchaseMode === 'vnd' ? 'active' : ''}" id="tab-vnd-btn" type="button" onclick="switchPurchaseMode('vnd')">
-            💳 Mua Vĩnh Viễn (VNĐ)
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+            Mua Vĩnh Viễn (VNĐ)
           </button>
           <button class="mode-tab-btn tab-coin ${currentPurchaseMode === 'coin' ? 'active' : ''}" id="tab-coin-btn" type="button" onclick="switchPurchaseMode('coin')">
-            🪙 Thuê Theo Ngày (Coins)
+            <img src="/img/coin.png" alt="Coin" style="width:17px;height:17px;object-fit:contain;vertical-align:-3px;display:inline-block">
+            Thuê Theo Ngày (Coins)
           </button>
         </div>
 
@@ -602,10 +630,12 @@ async function loadDetail() {
 
         <!-- Section 2: Thuê Theo Ngày Bằng Coins -->
         <div id="mode-coin-section" style="display:${currentPurchaseMode === 'coin' ? 'block' : 'none'}">
-          <div style="font-size:0.82rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.65rem">
-            🪙 Chọn Thời Hạn Thuê Rank Bằng Coins:
+          ${rentNoticeHtml}
+          <div style="font-size:0.82rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.65rem;display:flex;align-items:center;gap:0.4rem">
+            <img src="/img/coin.png" alt="Coin" style="width:17px;height:17px;object-fit:contain;vertical-align:-3px;display:inline-block">
+            <span>Chọn Thời Hạn Thuê Rank Bằng Coins:</span>
           </div>
-          <div class="duration-grid">
+          <div class="duration-grid" style="${isOwnedOrLower ? 'opacity:0.4;pointer-events:none;filter:grayscale(0.7);' : ''}">
             <div class="duration-card ${selectedDuration === '1d' ? 'active' : ''}" data-duration="1d" onclick="selectDuration('1d')">
               <div class="d-days">1 Ngày</div>
               <div class="d-cost">${rankMeta.coinPricing['1d']} Coins</div>
@@ -625,7 +655,7 @@ async function loadDetail() {
             </div>
           </div>
 
-          <div class="rent-coin-box">
+          <div class="rent-coin-box" style="${isOwnedOrLower ? 'opacity:0.65;' : ''}">
             <div class="rent-summary-row">
               <span style="color:var(--text-muted)">Số Coins thanh toán:</span>
               <strong id="rent-cost-val" style="color:#fbbf24;font-family:var(--font-mono);font-size:1.15rem">${rankMeta.coinPricing[selectedDuration]} Coins</strong>
@@ -639,15 +669,15 @@ async function loadDetail() {
             </div>
             <div style="margin-top:0.85rem">
               <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem">Tên nhân vật Minecraft nhận Rank:</label>
-              <input type="text" id="rent-ign" class="input" placeholder="Nhập IGN Minecraft (Ví dụ: StevePro99)" value="${api.escapeHtml(savedIgn)}" style="width:100%;padding:0.6rem 0.8rem;font-size:0.88rem;background:#0f172a;color:#f8fafc">
+              <input type="text" id="rent-ign" class="input" placeholder="Nhập IGN Minecraft (Ví dụ: StevePro99)" value="${api.escapeHtml(savedIgn)}" ${isOwnedOrLower ? 'disabled' : ''} style="width:100%;padding:0.6rem 0.8rem;font-size:0.88rem;background:#0f172a;color:#f8fafc;${isOwnedOrLower ? 'cursor:not-allowed;' : ''}">
             </div>
             <div id="rent-success-msg" style="display:none;margin-top:0.75rem;padding:0.65rem 0.85rem;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#34d399;font-size:0.85rem"></div>
           </div>
 
           <div class="detail-actions">
             <a href="/html/Store.html" class="btn-back">← Cửa hàng</a>
-            <button class="btn-rent-coin" id="rent-coin-btn" onclick="handleRentCoins()">
-              ⚡ Kích Hoạt Thuê Rank Bằng Coins
+            <button class="btn-rent-coin" id="rent-coin-btn" onclick="handleRentCoins()" ${rentBtnDisabled ? 'disabled style="opacity:0.55;cursor:not-allowed;background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);box-shadow:none"' : ''}>
+              ${rentBtnText}
             </button>
           </div>
         </div>
@@ -836,9 +866,16 @@ function updateRentCoinCalc() {
   const rankKey = getRankKey(currentProduct);
   if (!rankKey || !RANK_DETAILS[rankKey]) return;
   const meta = RANK_DETAILS[rankKey];
+  const pTier = meta.tier || 0;
+  const isOwnedOrLower = (pTier > 0 && userRankTier >= pTier);
   const cost = meta.coinPricing[selectedDuration] || 0;
   const costEl = document.getElementById('rent-cost-val');
   if (costEl) costEl.textContent = `${cost} Coins`;
+
+  const btn = document.getElementById('rent-coin-btn');
+  if (btn && !isOwnedOrLower) {
+    btn.textContent = `⚡ Kích Hoạt Thuê ${meta.name} (${cost} Coins)`;
+  }
 
   const u = api.getUser();
   const userCoinsEl = document.getElementById('detail-user-coins');
@@ -859,6 +896,22 @@ async function handleRentCoins() {
     return;
   }
 
+  const rankKey = getRankKey(currentProduct);
+  const meta = rankKey ? RANK_DETAILS[rankKey] : null;
+  if (!meta) return;
+
+  const pTier = meta.tier || 0;
+  const isOwnedOrLower = (pTier > 0 && userRankTier >= pTier);
+  if (isOwnedOrLower) {
+    const isExact = (userRankTier === pTier);
+    const msg = isExact
+      ? 'Bạn đã sở hữu vĩnh viễn Rank này, không thể thuê theo ngày!'
+      : `Bạn đã sở hữu Rank cấp cao hơn (${userRankStatus.current_rank || 'Cấp ' + userRankTier}), không thể thuê Rank cấp nhỏ hơn!`;
+    if (typeof api.showToast === 'function') api.showToast(msg, 'error');
+    else alert(msg);
+    return;
+  }
+
   const u = api.getUser();
   const ignInput = document.getElementById('rent-ign');
   const ign = ignInput ? ignInput.value.trim() : ((u && (u.minecraft_username || u.minecraftUsername)) || '');
@@ -869,10 +922,6 @@ async function handleRentCoins() {
     if (ignInput) ignInput.focus();
     return;
   }
-
-  const rankKey = getRankKey(currentProduct);
-  const meta = rankKey ? RANK_DETAILS[rankKey] : null;
-  if (!meta) return;
 
   const cost = (meta.coinPricing && meta.coinPricing[selectedDuration]) || 0;
   const userCoins = Number((u && u.coins) || 0);
