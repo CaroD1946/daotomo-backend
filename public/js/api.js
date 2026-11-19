@@ -915,7 +915,7 @@ function initGlobalFooter() {
           <img class="footer-brand-logo" src="/img/logo.jpg" alt="Đảo Tò Mò Logo">
           <div>
             <div class="footer-brand-title">Đảo Tò Mò</div>
-            <div class="footer-brand-sub">Survival • Làng Rắn Mới</div>
+            <div class="footer-brand-sub">Community • Làng Rắn Mối</div>
           </div>
         </div>
         <p>Cộng đồng Minecraft sinh tồn nơi mọi người cùng khám phá, xây dựng, giao thương và giải trí mỗi ngày.</p>
