@@ -127,6 +127,8 @@ class InternalMinecraftBridgeController extends Controller
             return response()->json(['success' => false, 'message' => 'No delivery IDs provided.'], 400);
         }
 
+        $records = GameDeliveryQueue::whereIn('id', $ids)->get();
+
         GameDeliveryQueue::whereIn('id', $ids)->update([
             'status' => 'completed',
             'executed_at' => now(),
@@ -156,6 +158,7 @@ class InternalMinecraftBridgeController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Đã cập nhật trạng thái thực thi thành công.',
+            'delivered_items' => $records,
         ]);
     }
 
@@ -286,7 +289,7 @@ class InternalMinecraftBridgeController extends Controller
             } elseif ($type === 'coins') {
                 $command = "coins give {$username} 50000";
             } else {
-                $command = "lp user {$username} parent add vip";
+                $command = "lp user {$username} parent set master";
             }
         }
 

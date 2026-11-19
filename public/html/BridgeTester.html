@@ -445,6 +445,32 @@
             color: #34d399;
         }
 
+        /* Auto Delivery Toggle Badge */
+        .auto-toggle-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.45);
+            color: #34d399;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        .auto-toggle-badge:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.35);
+        }
+        .auto-toggle-badge.paused {
+            background: rgba(245, 158, 11, 0.15);
+            border-color: rgba(245, 158, 11, 0.45);
+            color: #fbbf24;
+        }
+
         .code-box {
             background: #090e17;
             border: 1px solid #1e293b;
@@ -832,11 +858,17 @@
     <div id="tab-deliveries" class="tab-panel">
         <div class="card">
             <div class="card-header">
-                <span class="card-title">📦 Hàng Đợi Giao Đồ Cửa Hàng (Store Delivery Queue)</span>
-                <span id="pendingCountBadge" class="badge badge-pending">0 Lệnh Chờ</span>
+                <span class="card-title">📦 Hàng Đợi Giao Đồ Cửa Hàng & Nhận Quà In-Game</span>
+                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                    <label id="autoDeliverToggleLabel" class="auto-toggle-badge" onclick="toggleAutoDeliver()" title="Bấm để bật hoặc tạm dừng chế độ tự động giao quà">
+                        <span class="status-dot"></span>
+                        <span id="autoDeliverText">⚡ Tự Động Giao Quà: ĐANG BẬT</span>
+                    </label>
+                    <span id="pendingCountBadge" class="badge badge-pending">0 Lệnh Chờ</span>
+                </div>
             </div>
             <div class="info-banner">
-                🛒 <strong>Cơ chế tự động hóa:</strong> Khi khách hàng mua Rank hoặc Gói Xu trên Web, hệ thống tự động đưa các lệnh Minecraft (ví dụ <code>lp user {player} parent add vip</code>) vào hàng đợi. Server Minecraft định kỳ polling qua Bridge API để thực thi và cập nhật trạng thái đơn sang <code>delivered</code>.
+                🛒 <strong>Cơ chế tự động hóa:</strong> Khi khách hàng mua Rank, Gói Xu trên Web hoặc Điểm Danh, hệ thống tự động đưa lệnh Minecraft vào hàng đợi. Với chế độ <strong>Tự Động Giao Quà</strong> đang bật, hệ thống sẽ tự động thực thi và hiện thông báo chi tiết phần quà mà người chơi đã nhận được ngay lập tức mà không cần bấm tay!
             </div>
 
             <!-- SePay Mock Payment Simulator Box -->
@@ -846,7 +878,7 @@
                     <button class="btn btn-outline btn-sm" onclick="fetchPendingOrdersForMockPay()">🔄 Quét Đơn Web Chờ Thanh Toán</button>
                 </div>
                 <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
-                    Khi bạn hoặc Giảng viên tạo đơn mua Rank / Gói Xu trên Website Đảo Tò Mò, đơn sẽ ở trạng thái <code>Chờ thanh toán</code>. Hãy chọn hoặc nhập mã đơn hàng bên dưới rồi bấm <strong>"Thanh Toán Đơn Ngay"</strong> để giả lập khách chuyển khoản thành công qua SePay!
+                    Khi bạn hoặc Giảng viên tạo đơn mua Rank / Gói Xu trên Website Đảo Tò Mò, đơn sẽ ở trạng thái <code>Chờ thanh toán</code>. Hãy chọn hoặc nhập mã đơn hàng bên dưới rồi bấm <strong>"Thanh Toán Đơn Ngay"</strong> để giả lập khách chuyển khoản thành công qua SePay! Hệ thống sẽ tự động giao quà vào game và hiển thị chi tiết phần quà nhận được.
                 </p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; align-items: flex-end;">
                     <div class="form-group" style="margin-bottom: 0;">
@@ -867,11 +899,40 @@
                 </div>
             </div>
 
-            <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
-                <button class="btn btn-blue" onclick="fetchPendingDeliveries()">🔄 1. Quét Hàng Đợi Đang Chờ (Pending)</button>
-                <button class="btn btn-gold" onclick="createMockDelivery('rank')">🛒 2. Tạo Đơn Rank VIP Mẫu</button>
-                <button class="btn btn-gold" onclick="createMockDelivery('keys')">🗝️ 3. Tạo Đơn 10 Chìa Khóa Rare Mẫu</button>
-                <button class="btn btn-green" onclick="confirmAllDeliveries()">✅ 4. Xác Nhận Giao Đồ In-Game (Complete All)</button>
+            <!-- Latest Delivered Gift Hero Card (Hiển thị phần quà vừa nhận thành công) -->
+            <div id="latestDeliveryHero" class="checkin-hero-card" style="border-color: #38bdf8; background: linear-gradient(135deg, rgba(6, 182, 212, 0.12) 0%, rgba(15, 23, 42, 0.95) 100%); margin-bottom: 20px; display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <div style="font-size: 13px; text-transform: uppercase; letter-spacing: 1px; color: #38bdf8; font-weight: 700;">
+                            ✨ PHẦN QUÀ IN-GAME VỪA TRAO THÀNH CÔNG
+                        </div>
+                        <h2 id="deliveryHeroTitle" style="font-size: 22px; color: #ffffff; margin-top: 4px;">
+                            Người chơi vừa nhận quà!
+                        </h2>
+                        <p id="deliveryHeroSub" style="font-size: 13px; color: #7dd3fc;">
+                            Hệ thống Bridge đã tự động kích hoạt quyền lợi trực tiếp vào server Minecraft.
+                        </p>
+                    </div>
+                    <div style="text-align: right;">
+                        <span class="badge badge-completed" id="deliveryHeroBadge" style="font-size: 13px; padding: 6px 14px;">
+                            ✅ ĐÃ GIAO XONG (DELIVERED)
+                        </span>
+                        <div id="deliveryHeroTime" style="font-size: 12px; color: #94a3b8; margin-top: 6px;">Vừa xong</div>
+                    </div>
+                </div>
+
+                <!-- Reward Grid Showcase -->
+                <div class="reward-grid" id="deliveryHeroGrid">
+                    <!-- Dynamic reward boxes -->
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; align-items: center;">
+                <button class="btn btn-blue" onclick="fetchPendingDeliveries()">🔄 1. Quét Hàng Đợi (Pending)</button>
+                <button class="btn btn-gold" onclick="createMockDelivery('rank')">👑 2. Mua Thử Rank Master Mẫu</button>
+                <button class="btn btn-gold" onclick="createMockDelivery('keys')">🗝️ 3. Mua Thử 10 Chìa Khóa Rare</button>
+                <button class="btn btn-purple" onclick="createMockDelivery('coins')">🪙 4. Nạp Thử 50.000 Xu Đảo</button>
+                <button class="btn btn-green" id="manualDeliverBtn" onclick="confirmAllDeliveries()">⚡ Giao Tất Cả Quà (Thủ Công)</button>
             </div>
 
             <div class="table-responsive">
@@ -879,10 +940,10 @@
                     <thead>
                         <tr>
                             <th>ID</th>
+                            <th>Người Nhận (IGN)</th>
+                            <th>🎁 Quà Nhận Được</th>
                             <th>Mã Đơn / Nguồn</th>
-                            <th>Tên In-Game</th>
-                            <th>Lệnh Minecraft Sẽ Chạy</th>
-                            <th>Loại</th>
+                            <th>Lệnh Console Minecraft</th>
                             <th>Trạng Thái</th>
                             <th>Thao Tác</th>
                         </tr>
@@ -1047,6 +1108,9 @@
     let pendingDeliveriesList = [];
     let lastLatestCheckinId = null;
     let checkinPollTimer = null;
+    let isAutoDeliver = true; // Auto-delivery mode ON by default
+    let deliveryPollTimer = null;
+    let isCurrentlyDelivering = false;
 
     // Web Audio Chime Sound FX
     function playSuccessSound() {
@@ -1116,10 +1180,12 @@
     window.addEventListener('DOMContentLoaded', () => {
         updateEnvBanner();
         testConnection();
+        updateAutoDeliverUI();
         fetchPendingDeliveries();
         fetchPendingOrdersForMockPay();
         fetchRecentCheckins();
         startCheckinPolling();
+        startDeliveryPolling();
     });
 
     // Update Environment Banner UI
@@ -1448,14 +1514,239 @@
         }
     }
 
+    // ─── TỰ ĐỘNG GIAO QUÀ & PHÂN TÍCH PHẦN QUÀ (REWARDS PARSER & AUTO-DELIVERY) ───
+    function parseRewardFromCommand(cmd, type) {
+        cmd = (cmd || '').trim();
+        const low = cmd.toLowerCase();
+
+        // 1. Ranks
+        if (low.includes('parent set') || low.includes('parent add')) {
+            if (low.includes('god')) {
+                return {
+                    icon: '⚡',
+                    name: 'Rank God (Tối Thượng)',
+                    desc: 'Toàn bộ đặc quyền VIP tối thượng, Danh hiệu Thần Thoại, Hiệu ứng sấm sét chói lóa',
+                    badge: 'RANK TỐI THƯỢNG',
+                    color: '#f59e0b',
+                    isNotificationOnly: false
+                };
+            }
+            if (low.includes('overlord')) {
+                return {
+                    icon: '🔥',
+                    name: 'Rank Overlord (Vĩnh viễn)',
+                    desc: 'Bộ giáp dung nham rực lửa, Biệt hiệu độc quyền, Thú cưỡi Rồng huyền thoại',
+                    badge: 'RANK VIP',
+                    color: '#ef4444',
+                    isNotificationOnly: false
+                };
+            }
+            if (low.includes('master')) {
+                return {
+                    icon: '👑',
+                    name: 'Rank Master (Vĩnh viễn)',
+                    desc: 'Đặc quyền bay /fly toàn server, Aura hào quang tím, Chat màu nổi bật, x2 Drop, 5 Điểm Home',
+                    badge: 'RANK VIP',
+                    color: '#a855f7',
+                    isNotificationOnly: false
+                };
+            }
+            if (low.includes('legend')) {
+                return {
+                    icon: '🌟',
+                    name: 'Rank Legend (Vĩnh viễn)',
+                    desc: 'Hào quang Aura hạt lửa, 3 Điểm Home dịch chuyển, Bộ giáp độc quyền',
+                    badge: 'RANK VIP',
+                    color: '#38bdf8',
+                    isNotificationOnly: false
+                };
+            }
+            if (low.includes('knight') || low.includes('vip')) {
+                return {
+                    icon: '⚔️',
+                    name: 'Rank Knight (Vĩnh viễn)',
+                    desc: 'Quyền bay /fly tại khu xây dựng, Chat màu xanh lục, 2 Điểm Home',
+                    badge: 'RANK VIP',
+                    color: '#10b981',
+                    isNotificationOnly: false
+                };
+            }
+            return {
+                icon: '👑',
+                name: 'Gói Nâng Cấp Rank VIP',
+                desc: 'Kích hoạt quyền lợi cấp bậc thành viên VIP trên server',
+                badge: 'RANK VIP',
+                color: '#f59e0b',
+                isNotificationOnly: false
+            };
+        }
+
+        // 2. Coins
+        if (low.includes('coins give')) {
+            const match = cmd.match(/coins give \S+ (\d+)/i);
+            const amt = match ? Number(match[1]) : 0;
+            return {
+                icon: '🪙',
+                name: `Gói ${amt.toLocaleString('vi-VN')} Xu Đảo`,
+                desc: `Cộng trực tiếp ${amt.toLocaleString('vi-VN')} Xu vào số dư in-game của nhân vật`,
+                badge: 'TIỀN TỆ IN-GAME',
+                color: '#fbbf24',
+                isNotificationOnly: false
+            };
+        }
+
+        // 3. Crate Keys
+        if (low.includes('crate key give')) {
+            const match = cmd.match(/crate key give \S+ ([a-zA-Z0-9_]+) (\d+)/i);
+            const crate = match ? match[1].toUpperCase() : 'RARE';
+            const count = match ? match[2] : '10';
+            return {
+                icon: '🗝️',
+                name: `${count}x Chìa Khóa ${crate} Crate`,
+                desc: `Dùng để mở rương báu vật ${crate} tại khu vực Spawn máy chủ`,
+                badge: 'CHÌA KHÓA CRATE',
+                color: '#34d399',
+                isNotificationOnly: false
+            };
+        }
+
+        // 4. Checkin reward
+        if (type === 'checkin_reward') {
+            return {
+                icon: '🎁',
+                name: 'Quà Điểm Danh Hàng Ngày',
+                desc: '10x Chìa Khóa Rare Crate + Xu Đảo cộng thẳng vào tài khoản',
+                badge: 'ĐIỂM DANH',
+                color: '#34d399',
+                isNotificationOnly: false
+            };
+        }
+
+        // 5. Broadcast / Notification
+        if (low.includes('broadcast') || low.includes('tellraw')) {
+            return {
+                icon: '📢',
+                name: 'Thông Báo Toàn Server',
+                desc: 'Phát loa chúc mừng người chơi nhận quà thành công',
+                badge: 'THÔNG BÁO',
+                color: '#94a3b8',
+                isNotificationOnly: true
+            };
+        }
+
+        return {
+            icon: '🎁',
+            name: 'Vật Phẩm In-Game',
+            desc: cmd,
+            badge: 'VẬT PHẨM',
+            color: '#38bdf8',
+            isNotificationOnly: false
+        };
+    }
+
+    function toggleAutoDeliver() {
+        isAutoDeliver = !isAutoDeliver;
+        updateAutoDeliverUI();
+        showToast(isAutoDeliver ? '⚡ Đã BẬT Tự Động Giao Quà!' : '⏸️ Đã TẠM DỪNG Tự Động Giao Quà');
+        logMessage(isAutoDeliver ? '⚡ Đã BẬT chế độ Tự Động Giao Quà In-Game (Realtime Auto-Delivery).' : '⏸️ Đã TẠM DỪNG Tự Động Giao Quà. Bây giờ bạn có thể giao thủ công từng lệnh.', 'info');
+        if (isAutoDeliver) {
+            fetchPendingDeliveries(false);
+        }
+    }
+
+    function updateAutoDeliverUI() {
+        const pill = document.getElementById('autoDeliverToggleLabel');
+        const text = document.getElementById('autoDeliverText');
+        if (!pill || !text) return;
+        if (isAutoDeliver) {
+            pill.className = 'auto-toggle-badge active';
+            text.textContent = '⚡ Tự Động Giao Quà: ĐANG BẬT';
+        } else {
+            pill.className = 'auto-toggle-badge paused';
+            text.textContent = '⏸️ Tự Động Giao Quà: TẠM DỪNG (Bấm để bật)';
+        }
+    }
+
+    function startDeliveryPolling() {
+        if (deliveryPollTimer) clearInterval(deliveryPollTimer);
+        deliveryPollTimer = setInterval(() => {
+            fetchPendingDeliveries(true);
+        }, 2500); // Polling every 2.5s
+    }
+
+    function updateDeliveryHero(player, rewardsList) {
+        const hero = document.getElementById('latestDeliveryHero');
+        const title = document.getElementById('deliveryHeroTitle');
+        const sub = document.getElementById('deliveryHeroSub');
+        const grid = document.getElementById('deliveryHeroGrid');
+        const time = document.getElementById('deliveryHeroTime');
+        if (!hero || !grid) return;
+
+        hero.style.display = 'block';
+        if (title) title.innerHTML = `🎮 Người chơi <span style="color:#fbbf24;">${player}</span> vừa nhận quà thành công!`;
+        if (sub) sub.textContent = `Hệ thống Bridge đã tự động kích hoạt ${rewardsList.length} phần quà trực tiếp vào server Minecraft.`;
+        if (time) time.textContent = 'Vừa giao xong lúc ' + new Date().toLocaleTimeString('vi-VN');
+
+        grid.innerHTML = rewardsList.map(r => `
+            <div class="reward-box" style="border-color:${r.reward.color}55; background:rgba(15,23,42,0.85);">
+                <div class="reward-icon">${r.reward.icon}</div>
+                <div>
+                    <div class="reward-title" style="color:${r.reward.color};">${r.reward.badge}</div>
+                    <div class="reward-val" style="font-size:15px; color:#ffffff;">${r.reward.name}</div>
+                    <div style="font-size:11px; color:#94a3b8; margin-top:2px;">${r.reward.desc}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderDeliveriesTable() {
+        const tbody = document.getElementById('deliveriesTableBody');
+        if (!tbody) return;
+
+        if (!pendingDeliveriesList || pendingDeliveriesList.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #34d399; padding: 24px;">
+                🎉 <strong>Tất cả quà đã được tự động giao vào game thành công!</strong> (Hàng đợi trống 0 lệnh).<br>
+                <span style="color:var(--text-muted); font-size:12px;">Hãy bấm "Mua Thử Rank Master Mẫu" hoặc "Giả Lập Thanh Toán" ở trên để thấy quà tự động hiện lên!</span>
+            </td></tr>`;
+            return;
+        }
+
+        tbody.innerHTML = pendingDeliveriesList.map(item => {
+            const reward = parseRewardFromCommand(item.command, item.type);
+            const source = item.order_id ? `Đơn hàng #${item.order_id}` : (item.type === 'checkin_reward' ? '🎁 Thưởng Điểm Danh' : 'Lệnh Trực Tiếp');
+            return `
+                <tr>
+                    <td><strong>#${item.id}</strong></td>
+                    <td><span style="color:#fbbf24; font-weight:700; font-size:13px;">🎮 ${item.game_username}</span></td>
+                    <td>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <span style="font-size:20px; line-height:1;">${reward.icon}</span>
+                            <div>
+                                <div style="font-weight:700; color:#ffffff; font-size:13px;">${reward.name}</div>
+                                <div style="font-size:11px; color:#94a3b8;">${reward.desc}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span style="color:#60a5fa; font-weight:600;">${source}</span></td>
+                    <td><code class="code-pill">${item.command}</code></td>
+                    <td><span class="badge badge-pending">CHỜ GIAO</span></td>
+                    <td>
+                        <button class="btn btn-green btn-sm" onclick="confirmSingleDelivery(${item.id})">⚡ Nhận Quà Ngay</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
     // 2. Fetch Pending Deliveries
-    async function fetchPendingDeliveries() {
+    async function fetchPendingDeliveries(isBackground = false) {
         const baseUrl = getApiBaseUrl();
         const token = document.getElementById('bridgeToken').value.trim();
-        const tbody = document.getElementById('deliveriesTableBody');
         const badge = document.getElementById('pendingCountBadge');
 
-        logMessage('GET /api/internal/minecraft/deliveries/pending ...');
+        if (!isBackground) {
+            logMessage('GET /api/internal/minecraft/deliveries/pending ...');
+        }
 
         try {
             const res = await fetch(`${baseUrl}/api/internal/minecraft/deliveries/pending`, {
@@ -1468,37 +1759,41 @@
 
             if (res.ok && data.success) {
                 pendingDeliveriesList = data.deliveries || [];
-                badge.textContent = `${pendingDeliveriesList.length} Lệnh Chờ`;
-                badge.className = pendingDeliveriesList.length > 0 ? 'badge badge-pending' : 'badge badge-completed';
-
-                if (pendingDeliveriesList.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">Hiện không có lệnh nào đang chờ trong hàng đợi. Hãy bấm "Tạo Đơn Rank VIP Mẫu" để test!</td></tr>`;
-                    logMessage('Hàng đợi trống (0 lệnh pending).', 'ok');
-                    return;
+                if (badge) {
+                    badge.textContent = `${pendingDeliveriesList.length} Lệnh Chờ`;
+                    badge.className = pendingDeliveriesList.length > 0 ? 'badge badge-pending' : 'badge badge-completed';
                 }
 
-                tbody.innerHTML = pendingDeliveriesList.map(item => `
-                    <tr>
-                        <td><strong>#${item.id}</strong></td>
-                        <td>${item.order_id ? `Đơn hàng #${item.order_id}` : (item.type === 'checkin_reward' ? '🎁 Thưởng Điểm Danh' : 'Lệnh Trực Tiếp')}</td>
-                        <td><span style="color:#fbbf24; font-weight:600;">${item.game_username}</span></td>
-                        <td><code class="code-pill">${item.command}</code></td>
-                        <td><span class="badge ${item.type === 'rank' ? 'badge-vip' : (item.type === 'checkin_reward' ? 'badge-completed' : 'badge-pending')}">${item.type}</span></td>
-                        <td><span class="badge badge-pending">PENDING</span></td>
-                        <td>
-                            <button class="btn btn-green btn-sm" onclick="confirmSingleDelivery(${item.id})">✅ Giao Lệnh Này</button>
-                        </td>
-                    </tr>
-                `).join('');
+                renderDeliveriesTable();
 
-                logMessage(`Đã tải ${pendingDeliveriesList.length} lệnh giao đồ đang chờ.`, 'ok');
+                if (!isBackground) {
+                    logMessage(`Đã tải ${pendingDeliveriesList.length} lệnh giao đồ đang chờ.`, 'ok');
+                }
+
+                // Chế độ Tự Động Giao Quà: Không cần bấm tay!
+                if (isAutoDeliver && pendingDeliveriesList.length > 0) {
+                    if (!isCurrentlyDelivering) {
+                        isCurrentlyDelivering = true;
+                        const idsToAuto = pendingDeliveriesList.map(d => d.id);
+                        const itemsToAuto = [...pendingDeliveriesList];
+                        try {
+                            await executeConfirmDeliveries(idsToAuto, { isAuto: true, sourceItems: itemsToAuto });
+                        } finally {
+                            isCurrentlyDelivering = false;
+                        }
+                    }
+                }
             } else {
-                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #f87171; padding: 20px;">Lỗi: ${data.message || 'Unauthorized'}</td></tr>`;
-                logMessage(`❌ Lỗi tải deliveries: ${data.message}`, 'err');
+                if (!isBackground) {
+                    const tbody = document.getElementById('deliveriesTableBody');
+                    if (tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #f87171; padding: 20px;">Lỗi: ${data.message || 'Unauthorized'}</td></tr>`;
+                    logMessage(`❌ Lỗi tải deliveries: ${data.message}`, 'err');
+                }
             }
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; color: #f87171; padding: 20px;">Lỗi mạng: ${err.message}</td></tr>`;
-            logMessage(`❌ Lỗi mạng: ${err.message}`, 'err');
+            if (!isBackground) {
+                logMessage(`❌ Lỗi mạng: ${err.message}`, 'err');
+            }
         }
     }
 
@@ -1523,9 +1818,15 @@
             const data = await res.json();
 
             if (res.ok && data.success) {
-                logMessage(`✅ Đã tạo lệnh mẫu: ${data.delivery?.command}`, 'ok');
-                showToast('Đã tạo lệnh giao đồ mẫu vào hàng đợi!');
-                fetchPendingDeliveries();
+                const item = data.delivery;
+                const reward = parseRewardFromCommand(item?.command, type);
+                logMessage(`✅ Đã tạo phần quà mẫu [${reward.name}] cho ${username}!`, 'ok');
+                showToast(`Đã tạo quà [${reward.name}]! Đang tự động nạp vào game...`);
+                
+                // Refresh and auto deliver
+                setTimeout(async () => {
+                    await fetchPendingDeliveries(false);
+                }, 300);
             } else {
                 logMessage(`❌ ${data.message}`, 'err');
             }
@@ -1542,7 +1843,7 @@
     // Confirm All Deliveries
     async function confirmAllDeliveries() {
         if (pendingDeliveriesList.length === 0) {
-            alert('Hàng đợi trống, không có lệnh nào để giao!');
+            alert('Hàng đợi trống, tất cả quà đã được tự động giao vào game rồi!');
             return;
         }
         const ids = pendingDeliveriesList.map(d => d.id);
@@ -1550,11 +1851,15 @@
     }
 
     // Internal Confirm Deliveries
-    async function executeConfirmDeliveries(ids) {
+    async function executeConfirmDeliveries(ids, { isAuto = false, sourceItems = null } = {}) {
+        if (!ids || ids.length === 0) return;
         const baseUrl = getApiBaseUrl();
         const token = document.getElementById('bridgeToken').value.trim();
 
-        logMessage(`POST /api/internal/minecraft/deliveries/confirm [IDs: ${ids.join(', ')}]...`);
+        const itemsToConfirm = sourceItems || pendingDeliveriesList.filter(d => ids.includes(d.id));
+        const player = (itemsToConfirm[0] && itemsToConfirm[0].game_username) || 'Người chơi';
+
+        logMessage(`POST /api/internal/minecraft/deliveries/confirm [${ids.length} lệnh cho ${player}]...`);
 
         try {
             const res = await fetch(`${baseUrl}/api/internal/minecraft/deliveries/confirm`, {
@@ -1569,38 +1874,80 @@
             const data = await res.json();
 
             if (res.ok && data.success) {
-                logMessage(`✅ Xác nhận giao thành công ${ids.length} lệnh vào game! Đơn hàng đã chuyển sang DELIVERED.`, 'ok');
-                showToast(`Đã giao thành công ${ids.length} lệnh in-game!`);
+                // Parse distinct items
+                const parsedRewards = itemsToConfirm
+                    .map(it => ({ ...it, reward: parseRewardFromCommand(it.command, it.type) }))
+                    .filter(r => !r.reward.isNotificationOnly);
+
+                const finalRewards = parsedRewards.length > 0 ? parsedRewards : itemsToConfirm.map(it => ({
+                    ...it,
+                    reward: parseRewardFromCommand(it.command, it.type)
+                }));
+
+                logMessage(`✅ [ĐÃ TRAO QUÀ IN-GAME] Tự động giao thành công ${finalRewards.length} phần quà cho [${player}]!`, 'ok');
+                showToast(`🎉 ${player} đã nhận ${finalRewards.map(f => f.reward.name).join(', ')}!`);
+
+                // Update Hero showcase banner on Tab 2
+                updateDeliveryHero(player, finalRewards);
+
+                // Show rich celebration modal with EXACT GIFTS
+                const rewardsHtml = finalRewards.map(r => `
+                    <div style="display:flex; align-items:center; gap:12px; background:rgba(255,255,255,0.04); border:1px solid ${r.reward.color}44; border-radius:8px; padding:12px 14px; margin-bottom:8px; text-align:left;">
+                        <div style="font-size:32px; line-height:1; min-width:36px; text-align:center;">${r.reward.icon}</div>
+                        <div style="flex:1;">
+                            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                                <strong style="color:#ffffff; font-size:15px;">${r.reward.name}</strong>
+                                <span style="font-size:10px; font-weight:800; background:${r.reward.color}22; color:${r.reward.color}; padding:2px 7px; border-radius:4px; border:1px solid ${r.reward.color}55;">${r.reward.badge}</span>
+                            </div>
+                            <div style="font-size:12px; color:#cbd5e1; margin-top:3px; line-height:1.4;">${r.reward.desc}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="color:#34d399; font-weight:800; font-size:11px; background:rgba(16,185,129,0.15); border:1px solid rgba(16,185,129,0.3); padding:4px 8px; border-radius:4px; white-space:nowrap;">
+                                ✅ ĐÃ NHẬN
+                            </span>
+                        </div>
+                    </div>
+                `).join('');
+
+                const detailsHtml = `
+                    <div style="background:rgba(15,23,42,0.85); border:1px solid rgba(56,189,248,0.3); border-radius:8px; padding:12px 14px; margin-bottom:12px; text-align:left;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+                            <span style="color:#94a3b8; font-size:13px;">Nhân vật nhận quà:</span>
+                            <strong style="color:#fbbf24; font-size:15px; font-family:var(--font-mono);">🎮 ${player}</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="color:#94a3b8; font-size:13px;">Phương thức trao quà:</span>
+                            <span class="badge badge-completed">${isAuto ? '⚡ BRIDGE TỰ ĐỘNG GIAO' : '✅ ĐÃ THỰC THI'}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:10px;">
+                        ${rewardsHtml}
+                    </div>
+                    <div style="color:#94a3b8; font-size:12px; margin-top:12px; text-align:center;">
+                        ⚡ Quyền lợi và vật phẩm đã nạp trực tiếp vào server game Minecraft. Người chơi có thể kiểm tra ngay!
+                    </div>
+                `;
 
                 showCelebrationModal({
                     type: 'delivery',
-                    icon: '📦',
-                    badge: 'IN-GAME DELIVERED • GIAO ĐỒ THÀNH CÔNG',
-                    title: `Đã Giao Thành Công ${ids.length} Lệnh In-Game!`,
-                    desc: `Hệ thống Minecraft Bridge đã thực thi lệnh thành công qua RCON/Console server. Vật phẩm & Quyền lợi đã nạp trực tiếp vào tài khoản người chơi!`,
-                    detailsHtml: `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Số lượng lệnh đã chạy:</span>
-                            <strong style="color:#34d399;">${ids.length} Lệnh Minecraft</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Trạng thái hàng đợi:</span>
-                            <span class="badge badge-completed">COMPLETED / DELIVERED</span>
-                        </div>
-                        <div style="color:#94a3b8; font-size:12px; margin-top:8px;">
-                            Người chơi có thể vào server Minecraft gõ kiểm tra đồ hoặc nhận ngay trong túi đồ/hòm thưởng Crate.
-                        </div>
-                    `,
-                    primaryText: '✅ Hoàn Tất'
+                    icon: '🎁',
+                    badge: 'IN-GAME DELIVERED • ĐÃ NHẬN QUÀ THÀNH CÔNG',
+                    title: `Người Chơi ${player} Đã Nhận Quà!`,
+                    desc: `Hệ thống Bridge đã tự động kích hoạt thành công quyền lợi và vật phẩm vào server game!`,
+                    detailsHtml: detailsHtml,
+                    primaryText: '🎉 Quá Tuyệt Vời (Đóng)'
                 });
 
-                fetchPendingDeliveries();
+                // Clear pending and re-render
+                pendingDeliveriesList = pendingDeliveriesList.filter(d => !ids.includes(d.id));
+                renderDeliveriesTable();
+                setTimeout(() => fetchPendingDeliveries(true), 400);
             } else {
                 logMessage(`❌ ${data.message}`, 'err');
-                alert(data.message);
+                if (!isAuto) alert(data.message);
             }
         } catch (err) {
-            logMessage(`❌ Lỗi: ${err.message}`, 'err');
+            logMessage(`❌ Lỗi giao đồ: ${err.message}`, 'err');
         }
     }
 
@@ -1675,38 +2022,45 @@
                 const count = data.queued_count || 1;
 
                 logMessage(`🎉 [THANH TOÁN THÀNH CÔNG] Đơn [#${order.order_code}] đã chuyển sang PAID! Đã nạp ${count} lệnh in-game cho [${player}].`, 'ok');
-                showToast(`Đã thanh toán thành công đơn #${order.order_code}!`);
 
-                showCelebrationModal({
-                    type: 'payment',
-                    icon: '💳',
-                    badge: 'SEPAY WEBHOOK • THANH TOÁN THÀNH CÔNG',
-                    title: `Thanh Toán Thành Công Đơn #${order.order_code}!`,
-                    desc: `Hệ thống SePay đã tự động xác nhận chuyển khoản <strong>${amount}đ</strong> và lập tức chuyển trạng thái sang <code>PAID</code>!`,
-                    detailsHtml: `
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Mã đơn hàng:</span>
-                            <strong style="color:#60a5fa;">#${order.order_code}</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Nhân vật nhận in-game:</span>
-                            <strong style="color:#fbbf24;">${player}</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-                            <span style="color:#94a3b8;">Số tiền thanh toán:</span>
-                            <strong style="color:#34d399;">${amount} VNĐ</strong>
-                        </div>
-                        <div style="display:flex; justify-content:space-between;">
-                            <span style="color:#94a3b8;">Lệnh Minecraft đã xếp hàng:</span>
-                            <span class="badge badge-pending" style="font-size:12px;">${count} Lệnh Chờ Giao</span>
-                        </div>
-                    `,
-                    primaryText: '✅ Đã Hiểu',
-                    secondaryText: '📦 Xem Hàng Đợi Giao Đồ',
-                    onSecondary: () => { switchTab('tab-deliveries'); }
-                });
+                if (isAutoDeliver) {
+                    showToast(`⚡ Đã thanh toán đơn #${order.order_code}! Đang tự động giao quà in-game cho ${player}...`);
+                    setTimeout(() => {
+                        fetchPendingDeliveries(false);
+                    }, 400);
+                } else {
+                    showToast(`Đã thanh toán thành công đơn #${order.order_code}!`);
+                    showCelebrationModal({
+                        type: 'payment',
+                        icon: '💳',
+                        badge: 'SEPAY WEBHOOK • THANH TOÁN THÀNH CÔNG',
+                        title: `Thanh Toán Thành Công Đơn #${order.order_code}!`,
+                        desc: `Hệ thống SePay đã tự động xác nhận chuyển khoản <strong>${amount}đ</strong> và lập tức chuyển trạng thái sang <code>PAID</code>!`,
+                        detailsHtml: `
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span style="color:#94a3b8;">Mã đơn hàng:</span>
+                                <strong style="color:#60a5fa;">#${order.order_code}</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span style="color:#94a3b8;">Nhân vật nhận in-game:</span>
+                                <strong style="color:#fbbf24;">${player}</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                                <span style="color:#94a3b8;">Số tiền thanh toán:</span>
+                                <strong style="color:#34d399;">${amount} VNĐ</strong>
+                            </div>
+                            <div style="display:flex; justify-content:space-between;">
+                                <span style="color:#94a3b8;">Lệnh Minecraft đã xếp hàng:</span>
+                                <span class="badge badge-pending" style="font-size:12px;">${count} Lệnh Chờ Giao</span>
+                            </div>
+                        `,
+                        primaryText: '✅ Đã Hiểu',
+                        secondaryText: '📦 Xem Hàng Đợi Giao Đồ',
+                        onSecondary: () => { switchTab('tab-deliveries'); }
+                    });
+                    fetchPendingDeliveries();
+                }
 
-                fetchPendingDeliveries();
                 fetchPendingOrdersForMockPay();
             } else {
                 logMessage(`❌ ${data.message || 'Lỗi thanh toán'}`, 'err');
