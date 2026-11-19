@@ -1292,7 +1292,7 @@ function initSupportTicketModal() {
       <div id="dtm-ticket-success-wrap" style="display:none;text-align:center;padding:0.5rem 0;">
         <div style="font-size:2.6rem;margin-bottom:0.4rem;">🎫</div>
         <h3 style="color:#fff;font-family:var(--font-display);font-size:1.2rem;margin-bottom:0.35rem;">Đã Gửi Ticket Thành Công!</h3>
-        <div style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.4rem 0.9rem;border-radius:9999px;background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.45);color:#fde68a;font-family:var(--font-mono);font-weight:800;margin:0.5rem 0;">
+        <div style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.4rem 0.9rem;border-radius:4px;background:rgba(245,158,11,0.18);border:1px solid rgba(245,158,11,0.45);color:#fde68a;font-family:var(--font-mono);font-weight:800;margin:0.5rem 0;">
           <span id="dtm-tk-res-code">#TK-000000</span>
           <button type="button" id="dtm-tk-copy-code" style="background:none;border:none;color:#38bdf8;cursor:pointer;font-size:0.8rem;font-weight:700;">📋 Chép</button>
         </div>

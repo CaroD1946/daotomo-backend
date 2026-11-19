@@ -200,7 +200,7 @@ footer::before{
 .account-box{
 	background:white;
 	padding:45px;
-	border-radius:20px;
+	border-radius:8px;
 	width:400px;
 	box-shadow:0 20px 50px rgba(0,0,0,0.15);
 	border:1px solid #e2e8f0;
@@ -218,7 +218,7 @@ footer::before{
 	border:none;
 	background:#e2e8f0;
 	color:#334155;
-	border-radius:10px;
+	border-radius:6px;
 	cursor:pointer;
 	font-weight:600;
 	transition:0.25s;
@@ -241,7 +241,7 @@ footer::before{
 
 .tab-content input{
 	padding:13px;
-	border-radius:10px;
+	border-radius:6px;
 	border:1px solid #cbd5e1;
 	outline:none;
 	background:white;
@@ -258,7 +258,7 @@ footer::before{
 .account-btn{
 	padding:13px;
 	border:none;
-	border-radius:12px;
+	border-radius:6px;
 	background:linear-gradient(90deg,#38bdf8,#22c55e);
 	color:white;
 	font-weight:700;

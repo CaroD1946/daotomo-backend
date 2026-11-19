@@ -37,7 +37,7 @@
       const safeLink = (data.link || '/html/Account.html').replace(/[<>&"]/g, '');
 
       bar.innerHTML = `
-        <span style="background: linear-gradient(135deg, #7c3aed, #ec4899); color:#fff; padding: 2px 9px; border-radius: 9999px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(124,58,237,0.4);">${safeBadge}</span>
+        <span style="background: linear-gradient(135deg, #7c3aed, #ec4899); color:#fff; padding: 2px 9px; border-radius: 4px; font-size: 0.72rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; box-shadow: 0 2px 8px rgba(124,58,237,0.4);">${safeBadge}</span>
         <span style="font-weight: 600; color: #f1f5f9;">${safeText}</span>
         ${safeLink ? `<a href="${safeLink}" style="color: #38bdf8; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; display: inline-flex; align-items: center; gap: 2px;">Xem chi tiết ↗</a>` : ''}
         <button id="close-announcement-btn" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:1.25rem;line-height:1;position:absolute;right:1rem;top:50%;transform:translateY(-50%);padding:4px;" title="Đóng thông báo">&times;</button>

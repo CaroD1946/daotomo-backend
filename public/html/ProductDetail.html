@@ -45,7 +45,7 @@
     }
     .detail-img-wrap img {
       width: 100%; height: 100%; object-fit: cover;
-      border-radius: 14px;
+      border-radius: 8px;
       transition: transform 0.5s cubic-bezier(0.16,1,0.3,1);
       filter: drop-shadow(0 12px 24px rgba(0,0,0,0.5));
     }
@@ -57,7 +57,7 @@
       font-size: 0.78rem; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1px; color: var(--lagoon); margin-bottom: 0.75rem;
       background: rgba(34,211,238,0.1); border: 1px solid rgba(34,211,238,0.25);
-      padding: 0.25rem 0.75rem; border-radius: 999px;
+      padding: 0.25rem 0.75rem; border-radius: 4px;
     }
     .detail-name {
       font-size: clamp(1.6rem, 4vw, 2.4rem);
@@ -160,7 +160,7 @@
       animation: zoomIn 0.25s cubic-bezier(0.16,1,0.3,1);
       box-shadow: 0 20px 60px rgba(0,0,0,0.7);
     }
-    .qr-box { width: 170px; height: 170px; margin: 1rem auto; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--primary); overflow: hidden; padding: 4px; }
+    .qr-box { width: 170px; height: 170px; margin: 1rem auto; background: #fff; border-radius: 8px; display: flex; align-items: center; justify-content: center; border: 3px solid var(--primary); overflow: hidden; padding: 4px; }
     .qr-box img { width: 100%; height: 100%; object-fit: contain; }
 
     /* ─── Mode Tabs (Mua Vĩnh Viễn / Thuê Theo Ngày) ─── */
@@ -213,7 +213,7 @@
     .duration-card .d-badge {
       position: absolute; top: -8px; right: -4px;
       font-size: 0.62rem; font-weight: 800; background: #10b981; color: #fff;
-      padding: 0.15rem 0.45rem; border-radius: 999px; letter-spacing: 0.2px;
+      padding: 0.15rem 0.45rem; border-radius: 4px; letter-spacing: 0.2px;
       box-shadow: 0 2px 8px rgba(16,185,129,0.4);
     }
 
@@ -279,7 +279,7 @@
     .command-item {
       display: flex; align-items: flex-start; gap: 0.85rem;
       padding: 0.75rem 0.95rem; background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.06); border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.06); border-radius: 6px;
       transition: background 0.2s ease, transform 0.2s ease;
     }
     .command-item:hover {
@@ -339,7 +339,7 @@
     <div style="text-align:center;padding:4rem 1.5rem;max-width:550px;margin:0 auto">
       <div class="spinner" style="margin:0 auto 1.25rem;width:42px;height:42px;border-width:3px"></div>
       <div style="font-size:1.15rem;font-weight:700;color:#fff;margin-bottom:0.6rem">Đang tải thông tin sản phẩm...</div>
-      <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:10px;padding:0.85rem 1.1rem;text-align:left">
+      <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:6px;padding:0.85rem 1.1rem;text-align:left">
         <div style="display:flex;align-items:flex-start;gap:0.6rem">
           <span style="font-size:1.15rem;line-height:1">⚠️</span>
           <div>
@@ -347,7 +347,7 @@
           </div>
         </div>
       </div>
-      <button class="btn btn-outline" type="button" onclick="location.reload()" style="font-size:0.85rem;padding:0.5rem 1.25rem;cursor:pointer;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;display:inline-flex;align-items:center;gap:0.4rem">
+      <button class="btn btn-outline" type="button" onclick="location.reload()" style="font-size:0.85rem;padding:0.5rem 1.25rem;cursor:pointer;border-radius:6px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.06);color:#fff;display:inline-flex;align-items:center;gap:0.4rem">
         <span>🔄</span> Tải lại trang
       </button>
     </div>
@@ -366,14 +366,14 @@
   <div class="modal">
     <div style="font-size:2.5rem;margin-bottom:0.25rem">🎉</div>
     <h2 style="font-size:1.35rem;font-weight:800;color:#fff;margin-bottom:0.3rem;font-family:var(--font-display)">Đặt Hàng Thành Công!</h2>
-    <div class="countdown-timer-pill" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.8rem;border-radius:9999px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-family:var(--font-mono);font-size:0.78rem;font-weight:700;margin-bottom:0.5rem">
+    <div class="countdown-timer-pill" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.3rem 0.8rem;border-radius:4px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-family:var(--font-mono);font-size:0.78rem;font-weight:700;margin-bottom:0.5rem">
       ⏰ Cửa sổ thanh toán: <span id="m-pay-countdown">15:00</span>
     </div>
     <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:0.85rem;line-height:1.5">
       Quét mã VietQR bên dưới bằng App Ngân hàng hoặc MoMo để đơn hàng được duyệt tự động.
     </p>
     
-    <div class="qr-box" style="width:200px;height:200px;margin:0.85rem auto;background:#fff;border-radius:14px;display:flex;align-items:center;justify-content:center;border:3px solid var(--lagoon);overflow:hidden;padding:6px;box-shadow:0 0 20px rgba(34,211,238,0.35)">
+    <div class="qr-box" style="width:200px;height:200px;margin:0.85rem auto;background:#fff;border-radius:8px;display:flex;align-items:center;justify-content:center;border:3px solid var(--lagoon);overflow:hidden;padding:6px;box-shadow:0 0 20px rgba(34,211,238,0.35)">
       <img id="m-vietqr-img" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 120'><rect fill='%23ffffff' width='120' height='120' rx='10'/><text x='60' y='64' font-family='sans-serif' font-size='13' fill='%23475569' text-anchor='middle'>VietQR</text></svg>" alt="Mã VietQR Chuyển Khoản">
     </div>
 
@@ -576,7 +576,7 @@ async function loadDetail() {
       finalVndPrice = Math.max(0, finalVndPrice - upgradeDiscount);
 
       upgradeBannerHtml = `
-        <div style="background:rgba(124,58,237,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1rem">
+        <div style="background:rgba(124,58,237,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:6px;padding:0.85rem 1.1rem;margin-bottom:1rem">
           <div style="font-size:0.82rem;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem">
             <span>⚡</span> Ưu Đãi Nâng Cấp Rank (Khấu Trừ Chênh Lệch)
           </div>
@@ -613,24 +613,24 @@ async function loadDetail() {
     let mcLinkBoxHtml = '';
     if (hasLinkedMc) {
       mcLinkBoxHtml = `
-        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem 1rem;margin-top:0.85rem;display:flex;align-items:center;justify-content:space-between">
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:6px;padding:0.75rem 1rem;margin-top:0.85rem;display:flex;align-items:center;justify-content:space-between">
           <div>
             <span style="font-size:0.76rem;color:#94a3b8;display:block">Tài khoản Minecraft nhận vật phẩm:</span>
             <strong style="color:#34d399;font-size:1.02rem;font-family:var(--font-mono)">🎮 ${api.escapeHtml(savedIgn)}</strong>
           </div>
-          <span style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.75rem;padding:3px 9px;border-radius:999px;font-weight:700">✅ Đã liên kết</span>
+          <span style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.75rem;padding:3px 9px;border-radius:4px;font-weight:700">✅ Đã liên kết</span>
         </div>
       `;
     } else {
       mcLinkBoxHtml = `
-        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:0.85rem 1rem;margin-top:0.85rem">
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:6px;padding:0.85rem 1rem;margin-top:0.85rem">
           <div style="color:#fbbf24;font-size:0.85rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem">
             <span>⚠️</span> Bạn chưa liên kết tài khoản Minecraft
           </div>
           <p style="color:#cbd5e1;font-size:0.82rem;margin:0 0 0.6rem;line-height:1.45">
             Hệ thống chỉ tự động giao vật phẩm đến tài khoản Minecraft đã liên kết.
           </p>
-          <a href="/html/Account.html?redirect=${encodeURIComponent(location.pathname + location.search)}" class="btn" style="display:inline-block;padding:0.4rem 0.9rem;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:6px;text-decoration:none">
+          <a href="/html/Account.html?redirect=${encodeURIComponent(location.pathname + location.search)}" class="btn" style="display:inline-block;padding:0.4rem 0.9rem;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:4px;text-decoration:none">
             🔗 Liên kết tài khoản ngay →
           </a>
         </div>
@@ -652,7 +652,7 @@ async function loadDetail() {
         const isExact = (userRankTier === pTier);
         rentBtnText = `🔒 ${isExact ? 'Đã sở hữu vĩnh viễn Rank này' : 'Đã có Rank cấp cao hơn (' + (userRankStatus.current_rank || 'Cấp ' + userRankTier) + ')'}`;
         rentNoticeHtml = `
-          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1rem;font-size:0.86rem;color:#fca5a5;display:flex;align-items:flex-start;gap:0.65rem;line-height:1.5">
+          <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.3);border-radius:6px;padding:0.85rem 1.1rem;margin-bottom:1rem;font-size:0.86rem;color:#fca5a5;display:flex;align-items:flex-start;gap:0.65rem;line-height:1.5">
             <span style="font-size:1.2rem;line-height:1">🔒</span>
             <div>
               <strong style="color:#ef4444">Không thể thuê theo ngày:</strong> ${isExact ? 'Bạn đã sở hữu vĩnh viễn Rank này.' : 'Bạn đã có Rank cấp cao hơn (' + (userRankStatus.current_rank || 'Cấp ' + userRankTier) + ').'} Tính năng thuê theo ngày đã được khóa vì bạn đã có cấp bậc này hoặc cao hơn.
@@ -902,14 +902,14 @@ async function loadDetail() {
       `<div style="text-align:center;padding:3.5rem 1.5rem;max-width:550px;margin:0 auto">
         <div style="font-size:2.5rem;margin-bottom:0.75rem">⚠️</div>
         <div style="font-size:1.15rem;font-weight:700;color:#ef4444;margin-bottom:0.5rem">Không thể tải thông tin sản phẩm</div>
-        <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:0.85rem 1.1rem;text-align:left">
+        <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6;margin-bottom:1.25rem;background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:6px;padding:0.85rem 1.1rem;text-align:left">
           Lần đầu tải có thể mất 1 – 2 phút nếu máy chủ đang khởi động lại. Xin vui lòng <strong>tải lại trang</strong> hoặc quay về cửa hàng.
         </div>
         <div style="display:flex;justify-content:center;gap:0.75rem;flex-wrap:wrap">
-          <button class="btn btn-primary" type="button" onclick="location.reload()" style="font-size:0.88rem;padding:0.55rem 1.25rem;cursor:pointer;border-radius:8px">
+          <button class="btn btn-primary" type="button" onclick="location.reload()" style="font-size:0.88rem;padding:0.55rem 1.25rem;cursor:pointer;border-radius:6px">
             🔄 Tải lại trang
           </button>
-          <a href="/html/Store.html" class="btn btn-outline" style="font-size:0.88rem;padding:0.55rem 1.25rem;text-decoration:none;border-radius:8px;border:1px solid rgba(255,255,255,0.2);color:#fff">
+          <a href="/html/Store.html" class="btn btn-outline" style="font-size:0.88rem;padding:0.55rem 1.25rem;text-decoration:none;border-radius:6px;border:1px solid rgba(255,255,255,0.2);color:#fff">
             ← Về Cửa hàng
           </a>
         </div>

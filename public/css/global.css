@@ -27,7 +27,7 @@ body {
 }
 ::-webkit-scrollbar-thumb {
   background: #232c45;
-  border-radius: 9999px;
+  border-radius: 4px;
   border: 2px solid #090b14;
 }
 ::-webkit-scrollbar-thumb:hover {
@@ -116,10 +116,11 @@ h1, h2, h3, h4, .font-heading {
   --success:      #10b981;
   --danger:       #ef4444;
 
-  --radius-sm:    8px;
-  --radius:       12px;
-  --radius-lg:    18px;
-  --radius-xl:    24px;
+  --radius-xs:    2px;
+  --radius-sm:    4px;
+  --radius:       6px;
+  --radius-lg:    8px;
+  --radius-xl:    10px;
 
   --shadow-sm:    0 2px 8px rgba(0,0,0,0.3);
   --shadow:       0 8px 32px rgba(0,0,0,0.4);
@@ -259,7 +260,7 @@ nav {
   gap: 5px;
   width: 40px; height: 40px;
   background: rgba(255,255,255,0.06);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 0 10px;
   transition: background var(--ease);
 }
@@ -448,7 +449,7 @@ option:checked {
 }
 
 /* ── Badge ── */
-.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+.badge { display: inline-block; padding: 0.2rem 0.6rem; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
 .badge-purple { background: rgba(108,99,255,0.2); color: #a78bfa; }
 .badge-gold   { background: rgba(245,158,11,0.2); color: #fbbf24; }
 .badge-green  { background: rgba(16,185,129,0.2); color: #34d399; }
@@ -674,7 +675,7 @@ footer::before {
   display: inline-flex; align-items: center; justify-content: center;
   line-height: 1; padding: 0;
   background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px; color: var(--text-muted);
+  border-radius: 6px; color: var(--text-muted);
   transition: all var(--dur) var(--ease-out);
 }
 .social-btn svg { width: 18px; height: 18px; display: block; flex-shrink: 0; }
@@ -813,13 +814,13 @@ footer::before {
   padding: 0.4rem 0.8rem;
   background: rgba(9, 11, 20, 0.55);
   backdrop-filter: blur(8px);
-  border-radius: 999px;
+  border-radius: 4px;
   border: 1px solid rgba(255,255,255,0.08);
 }
 .carousel-dot {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: 2px;
   background: rgba(255, 255, 255, 0.35);
   transition: all var(--dur) var(--ease-out);
   cursor: pointer;
@@ -1188,7 +1189,7 @@ footer::before {
 .dtm-fab-trigger {
   width: 52px;
   height: 52px;
-  border-radius: 14px;
+  border-radius: 8px;
   background: linear-gradient(135deg, rgba(23, 30, 54, 0.96) 0%, rgba(13, 18, 36, 0.98) 100%);
   border: 1.8px solid #22d3ee;
   box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.35), 0 10px 28px rgba(0, 0, 0, 0.65), 0 0 20px rgba(34, 211, 238, 0.4);
@@ -1327,7 +1328,7 @@ footer::before {
   top: 50%;
   transform: translateY(-50%) translateX(6px);
   padding: 5px 11px;
-  border-radius: 9999px;
+  border-radius: 4px;
   background: rgba(10, 14, 28, 0.96);
   border: 1px solid rgba(34, 211, 238, 0.35);
   color: #f8fafc;
@@ -1429,7 +1430,7 @@ footer::before {
   .dtm-fab-trigger {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: 6px;
   }
   .dtm-fab-menu {
     width: 48px;
@@ -1472,7 +1473,7 @@ footer::before {
   overflow-y: auto;
   background: linear-gradient(145deg, #13182e 0%, #0c1020 100%);
   border: 1px solid rgba(88, 101, 242, 0.45);
-  border-radius: var(--radius-lg, 18px);
+  border-radius: var(--radius-lg, 8px);
   box-shadow: 0 25px 70px rgba(0, 0, 0, 0.8), 0 0 32px rgba(88, 101, 242, 0.28);
   padding: 1.25rem 1.4rem;
   color: #e2e8f0;
@@ -1563,7 +1564,7 @@ footer::before {
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 10px;
+  border-radius: 6px;
   padding: 0.58rem 0.85rem;
   color: #fff;
   font-size: 0.86rem;
@@ -1607,7 +1608,7 @@ footer::before {
   justify-content: center;
   gap: 0.45rem;
   padding: 0.55rem 0.85rem;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 0.8rem;
   font-weight: 700;
   text-decoration: none;
@@ -1642,7 +1643,7 @@ footer::before {
 .dtm-ticket-notice {
   margin-top: 0.9rem;
   padding: 0.85rem 1rem;
-  border-radius: 12px;
+  border-radius: 6px;
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.35);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
@@ -1672,7 +1673,7 @@ footer::before {
   font-size: 0.72rem;
   font-weight: 700;
   padding: 0.15rem 0.55rem;
-  border-radius: 9999px;
+  border-radius: 4px;
   background: rgba(245, 158, 11, 0.2);
   color: #fde68a;
   border: 1px solid rgba(245, 158, 11, 0.45);
@@ -1698,7 +1699,7 @@ footer::before {
   width: 100%;
   box-sizing: border-box;
   padding: 0.6rem 0.9rem;
-  border-radius: 10px;
+  border-radius: 6px;
   background: linear-gradient(135deg, #5865f2 0%, #4752c4 100%);
   border: 1px solid rgba(165, 180, 252, 0.6);
   color: #ffffff;
@@ -1856,7 +1857,7 @@ footer::before {
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
   padding: 0.3rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: 4px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   pointer-events: none;
   z-index: 3;
@@ -1937,7 +1938,7 @@ footer::before {
   font-family: var(--font-mono);
   font-size: 0.72rem;
   padding: 0.25rem 0.65rem;
-  border-radius: 9999px;
+  border-radius: 4px;
   background: rgba(34, 211, 238, 0.12);
   border: 1px solid rgba(34, 211, 238, 0.3);
   color: var(--lagoon);
@@ -1966,7 +1967,7 @@ footer::before {
 .skin-profile-card {
   background: #101524;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
   position: relative;
@@ -2103,7 +2104,7 @@ body.dtm-has-notice footer {
   align-items: center;
   gap: 0.25rem;
   padding: 0.14rem 0.6rem;
-  border-radius: 9999px;
+  border-radius: 4px;
   background: rgba(239, 68, 68, 0.16);
   border: 1px solid rgba(248, 113, 113, 0.36);
   color: #fecaca;
