@@ -65,7 +65,7 @@ class ServerReviewController extends Controller
                 'player_name' => $playerName,
                 'rating' => (int) $validated['rating'],
                 'comment' => trim($validated['comment']),
-                'tag' => 'Cư dân từ Season 1',
+                'tag' => 'Cư dân Season 2',
                 'is_approved' => true,
             ]
         );

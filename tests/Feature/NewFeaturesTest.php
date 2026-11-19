@@ -316,7 +316,7 @@ class NewFeaturesTest extends TestCase
                 'data' => [
                     'player_name' => 'SteveReviewer',
                     'rating' => 5,
-                    'tag' => 'Cư dân từ Season 1',
+                    'tag' => 'Cư dân Season 2',
                 ],
             ]);
 
@@ -327,7 +327,7 @@ class NewFeaturesTest extends TestCase
                 'success' => true,
                 'data' => [
                     'rating' => 5,
-                    'tag' => 'Cư dân từ Season 1',
+                    'tag' => 'Cư dân Season 2',
                 ],
             ]);
 
