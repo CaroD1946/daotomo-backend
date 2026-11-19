@@ -18,6 +18,7 @@ use App\Http\Controllers\Api\Support\SupportTicketController;
 use App\Http\Controllers\Api\User\GameLinkController;
 use App\Http\Controllers\Api\Internal\InternalMinecraftBridgeController;
 use App\Http\Controllers\Api\Common\AnnouncementController;
+use App\Http\Controllers\Api\Common\ServerReviewController;
 use App\Http\Controllers\Api\Coupon\CouponController;
 use App\Http\Controllers\Api\Admin\AdminCouponController;
 use App\Http\Controllers\Api\Game\LuckyWheelController;
@@ -81,10 +82,11 @@ Route::get('/tickets/lookup', [SupportTicketController::class, 'lookup']);
 Route::middleware('throttle:15,1')->post('/tickets/{codeOrId}/reply', [SupportTicketController::class, 'reply']);
 Route::middleware('throttle:15,1')->post('/tickets/{codeOrId}/close', [SupportTicketController::class, 'close']);
 
-// ─── Public Announcement, Coupons & Lucky Wheel ──────────────────────────────
+// ─── Public Announcement, Coupons, Lucky Wheel & Server Reviews ─────────────
 Route::get('/announcement', [AnnouncementController::class, 'getAnnouncement']);
 Route::post('/coupons/validate', [CouponController::class, 'validateCoupon']);
 Route::get('/lucky-wheel/status', [LuckyWheelController::class, 'status']);
+Route::get('/reviews', [ServerReviewController::class, 'index']);
 
 // ─── SePay Webhook Endpoints ──────────────────────────────────────────────────
 Route::match(['GET', 'POST'], '/webhooks/sepay', [SepayWebhookController::class, 'handleWebhook']);
@@ -119,6 +121,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // Game Account Linking (1-to-1 PIN Handshake)
     Route::middleware('throttle:60,1')->post('/user/game-link', [GameLinkController::class, 'linkGame']);
     Route::delete('/user/game-link', [GameLinkController::class, 'unlinkGame']);
+
+    // Server Reviews (Rating from Profile)
+    Route::get('/reviews/me', [ServerReviewController::class, 'myReview']);
+    Route::post('/reviews', [ServerReviewController::class, 'storeOrUpdate']);
+    Route::delete('/reviews/me', [ServerReviewController::class, 'deleteMyReview']);
 
     // ─── Admin Only Routes ────────────────────────────────────────────────────
     Route::middleware(AdminMiddleware::class)->group(function () {

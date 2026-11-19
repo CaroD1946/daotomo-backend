@@ -293,4 +293,61 @@ class NewFeaturesTest extends TestCase
                 'final_total' => 40000,
             ]);
     }
+
+    public function test_server_reviews_flow()
+    {
+        // Public list
+        $res = $this->getJson('/api/reviews');
+        $res->assertStatus(200)
+            ->assertJsonStructure(['success', 'data']);
+
+        // Authenticated user creates review
+        $user = User::factory()->create([
+            'minecraft_username' => 'SteveReviewer',
+        ]);
+
+        $resPost = $this->actingAs($user)->postJson('/api/reviews', [
+            'rating' => 5,
+            'comment' => 'Server Minecraft hay nhất từng chơi, admin thân thiện nhiệt tình!',
+        ]);
+        $resPost->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'player_name' => 'SteveReviewer',
+                    'rating' => 5,
+                    'tag' => 'Cư dân từ Season 1',
+                ],
+            ]);
+
+        // Get my review
+        $resMy = $this->actingAs($user)->getJson('/api/reviews/me');
+        $resMy->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'data' => [
+                    'rating' => 5,
+                    'tag' => 'Cư dân từ Season 1',
+                ],
+            ]);
+
+        // Update review
+        $resUpdate = $this->actingAs($user)->postJson('/api/reviews', [
+            'rating' => 4,
+            'comment' => 'Cập nhật lại: Tính năng rất phong phú và mượt mà.',
+        ]);
+        $resUpdate->assertStatus(200)
+            ->assertJson([
+                'data' => [
+                    'rating' => 4,
+                ],
+            ]);
+
+        // Delete review
+        $resDel = $this->actingAs($user)->deleteJson('/api/reviews/me');
+        $resDel->assertStatus(200);
+
+        $resMyAfter = $this->actingAs($user)->getJson('/api/reviews/me');
+        $resMyAfter->assertJson(['data' => null]);
+    }
 }

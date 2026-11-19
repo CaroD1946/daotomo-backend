@@ -464,6 +464,12 @@ const api = {
     api.request(`/admin/coupons/${id}`, { method: 'DELETE' }),
   getAdminCouponUsages: (id) =>
     api.request(`/admin/coupons/${id}/usages`),
+  getServerReviews: () => api.request('/reviews'),
+  getMyServerReview: () => api.request('/reviews/me'),
+  submitServerReview: (data) =>
+    api.request('/reviews', { method: 'POST', body: JSON.stringify(data) }),
+  deleteMyServerReview: () =>
+    api.request('/reviews/me', { method: 'DELETE' }),
   cart: {
     getKey() { return 'daotomo_cart_items'; },
     getItems() {

@@ -219,7 +219,7 @@
               <div class="testimonial-avatar">🎮</div>
               <div class="testimonial-meta">
                 <div class="testimonial-name">MinhKhoi_VN</div>
-                <div class="testimonial-role">Cư dân Đảo · Tham gia từ 2024</div>
+                <div class="testimonial-role">Cư dân từ Season 1</div>
               </div>
             </div>
           </div>
@@ -233,7 +233,7 @@
               <div class="testimonial-avatar">🛡️</div>
               <div class="testimonial-meta">
                 <div class="testimonial-name">SkyCraft99</div>
-                <div class="testimonial-role">Kiến trúc sư Đảo</div>
+                <div class="testimonial-role">Kiến trúc sư · Cư dân từ Season 1</div>
               </div>
             </div>
           </div>
@@ -247,12 +247,17 @@
               <div class="testimonial-avatar">✨</div>
               <div class="testimonial-meta">
                 <div class="testimonial-name">ThaoNguyen_MC</div>
-                <div class="testimonial-role">VIP Member</div>
+                <div class="testimonial-role">VIP Member · Cư dân từ Season 1</div>
               </div>
             </div>
           </div>
 
         </div>
+      </div>
+      <div style="text-align:center;margin-top:2rem">
+        <a href="./html/Account.html#server-review-card" class="btn btn-ghost" style="font-size:0.875rem;padding:0.5rem 1.25rem;border-radius:6px;display:inline-flex;align-items:center;gap:0.5rem">
+          <span>✍️</span> <span>Gửi đánh giá máy chủ trong Profile của bạn</span> <span>→</span>
+        </a>
       </div>
     </div>
   </section>
@@ -332,5 +337,59 @@
 <script src="./js/api.js?v=3.2"></script>
 <script src="./js/skinview3d.bundle.js"></script>
 <script src="./js/skin-viewer.js?v=3.0"></script>
+<script>
+// Nạp đánh giá máy chủ động từ API
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    if (window.api && typeof window.api.getServerReviews === 'function') {
+      const res = await window.api.getServerReviews();
+      const reviews = res?.data || res || [];
+      if (Array.isArray(reviews) && reviews.length > 0) {
+        const carousel = document.querySelector('.testimonials .carousel-container');
+        const track = carousel?.querySelector('.carousel-track');
+        if (track && carousel) {
+          const avatars = ['🎮', '🛡️', '✨', '⚔️', '🏆', '💎', '🎯', '🔥'];
+          track.innerHTML = reviews.map((r, idx) => {
+            const rating = Math.max(1, Math.min(5, Number(r.rating) || 5));
+            const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
+            const avatar = avatars[idx % avatars.length];
+            const name = window.api.escapeHtml(r.player_name || 'Cư dân Đảo');
+            const role = window.api.escapeHtml(r.tag || 'Cư dân từ Season 1');
+            const comment = window.api.escapeHtml(r.comment || '');
+            return `
+              <div class="carousel-slide testimonial-slide">
+                <div class="testimonial-stars">${stars}</div>
+                <blockquote class="testimonial-quote">
+                  “${comment}”
+                </blockquote>
+                <div class="testimonial-author">
+                  <div class="testimonial-avatar">${avatar}</div>
+                  <div class="testimonial-meta">
+                    <div class="testimonial-name">${name}</div>
+                    <div class="testimonial-role">${role}</div>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+
+          carousel._carouselInit = false;
+          const oldDots = carousel.querySelector('.carousel-dots');
+          if (oldDots) oldDots.remove();
+          const oldPrev = carousel.querySelector('.carousel-prev');
+          if (oldPrev) oldPrev.remove();
+          const oldNext = carousel.querySelector('.carousel-next');
+          if (oldNext) oldNext.remove();
+          if (typeof window.initCarousels === 'function') {
+            window.initCarousels(carousel.parentElement || document);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Load dynamic testimonials fallback:', err);
+  }
+});
+</script>
 </body>
 </html>
