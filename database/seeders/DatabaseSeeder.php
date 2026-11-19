@@ -382,5 +382,36 @@ class DatabaseSeeder extends Seeder
                 $t
             );
         }
+
+        // 6. Seed Default Event Coupons: OPEN2027 & NEWYEAR2027
+        \App\Models\Coupon::updateOrCreate(
+            ['code' => 'OPEN2027'],
+            [
+                'description' => 'Ưu đãi Khai Mở Server: Giảm 30% toàn bộ sản phẩm mua bằng VNĐ (Giới hạn 10 người)',
+                'discount_type' => 'percent',
+                'discount_value' => 30.00,
+                'min_order_amount' => 0.00,
+                'max_discount' => 0.00,
+                'max_uses' => 10,
+                'used_count' => 0,
+                'expires_at' => null,
+                'is_active' => true,
+            ]
+        );
+
+        \App\Models\Coupon::updateOrCreate(
+            ['code' => 'NEWYEAR2027'],
+            [
+                'description' => 'Mừng Năm Mới 2027: Giảm ngay 10.000đ trực tiếp vào đơn hàng (Giới hạn 50 người)',
+                'discount_type' => 'fixed',
+                'discount_value' => 10000.00,
+                'min_order_amount' => 0.00,
+                'max_discount' => 0.00,
+                'max_uses' => 50,
+                'used_count' => 0,
+                'expires_at' => null,
+                'is_active' => true,
+            ]
+        );
     }
 }

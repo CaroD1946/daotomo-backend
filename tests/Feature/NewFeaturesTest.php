@@ -262,4 +262,35 @@ class NewFeaturesTest extends TestCase
                 'top_products',
             ]);
     }
+
+    public function test_event_coupons_open2027_and_newyear2027()
+    {
+        $this->seed(\Database\Seeders\DatabaseSeeder::class);
+
+        // Test open2027 (case-insensitive, 30% discount, max 10 uses)
+        $resOpen = $this->postJson('/api/coupons/validate', [
+            'code' => 'open2027',
+            'total_amount' => 100000,
+        ]);
+        $resOpen->assertStatus(200)
+            ->assertJson([
+                'valid' => true,
+                'code' => 'OPEN2027',
+                'discount_amount' => 30000,
+                'final_total' => 70000,
+            ]);
+
+        // Test Newyear2027 (case-insensitive, 10,000 VND discount, max 50 uses)
+        $resNewyear = $this->postJson('/api/coupons/validate', [
+            'code' => 'Newyear2027',
+            'total_amount' => 50000,
+        ]);
+        $resNewyear->assertStatus(200)
+            ->assertJson([
+                'valid' => true,
+                'code' => 'NEWYEAR2027',
+                'discount_amount' => 10000,
+                'final_total' => 40000,
+            ]);
+    }
 }

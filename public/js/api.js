@@ -449,6 +449,8 @@ const api = {
   getAnnouncement: () => api.request('/announcement'),
   updateAnnouncement: (data) =>
     api.request('/admin/announcement', { method: 'PUT', body: JSON.stringify(data) }),
+  updateAdminAnnouncement: (data) =>
+    api.request('/admin/announcement', { method: 'PUT', body: JSON.stringify(data) }),
   getLuckyWheelStatus: () => api.request('/lucky-wheel/status'),
   spinLuckyWheel: (useCoins = false) =>
     api.request('/lucky-wheel/spin', { method: 'POST', body: JSON.stringify({ use_coins: useCoins }) }),
