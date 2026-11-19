@@ -127,6 +127,7 @@ h1, h2, h3, h4, .font-heading {
   --shadow-lg:    0 20px 60px rgba(0,0,0,0.5);
 
   --nav-h:        64px;
+  --announcement-h: 0px;
 
   /* Motion — one shared vocabulary for every page */
   --ease:         0.2s ease;
@@ -198,7 +199,7 @@ textarea:focus-visible, select:focus-visible, summary:focus-visible,
 /* ── Navbar ── */
 nav {
   position: fixed;
-  top: 0; left: 0; right: 0;
+  top: var(--announcement-h, 0px); left: 0; right: 0;
   height: var(--nav-h);
   background: var(--bg-nav);
   backdrop-filter: blur(16px);
@@ -209,6 +210,7 @@ nav {
   justify-content: space-between;
   padding: 0 1rem;
   z-index: 1000;
+  transition: top 0.25s ease;
 }
 .nav-logo {
   order: 1;
@@ -341,7 +343,11 @@ nav {
   #nav-list { order: 4; }
 }
 
-.page-body { padding-top: var(--nav-h); min-height: 100vh; }
+.page-body {
+  padding-top: calc(var(--nav-h) + var(--announcement-h, 0px));
+  min-height: 100vh;
+  transition: padding-top 0.25s ease;
+}
 
 /* ── Buttons ── */
 .btn {

@@ -5,7 +5,7 @@
   min-height: 100svh;
   display: flex;
   align-items: center;
-  padding: calc(var(--nav-h) + 2rem) 1.25rem 3rem;
+  padding: calc(var(--nav-h) + var(--announcement-h, 0px) + 2rem) 1.25rem 3rem;
   position: relative;
   overflow: hidden;
   background:

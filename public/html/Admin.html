@@ -116,25 +116,59 @@
     }
     .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
-    .product-table, .orders-table { width: 100%; border-collapse: collapse; }
-    .product-table thead tr, .orders-table thead tr {
+    .product-table, .orders-table, .table { width: 100%; border-collapse: collapse; }
+    .product-table thead tr, .orders-table thead tr, .table thead tr {
       background: rgba(255,255,255,0.025);
     }
-    .product-table th, .orders-table th {
-      text-align: left; font-size: 0.71rem; font-weight: 700;
+    .product-table th, .orders-table th, .table th {
+      text-align: left; font-size: 0.72rem; font-weight: 700;
       color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.6px;
-      padding: 0.8rem 1rem; border-bottom: 1px solid var(--border);
+      padding: 0.85rem 1.15rem; border-bottom: 1px solid var(--border);
       white-space: nowrap;
     }
-    .product-table td, .orders-table td {
-      padding: 0.85rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.06);
-      font-size: 0.84rem; vertical-align: middle;
+    .product-table td, .orders-table td, .table td {
+      padding: 0.95rem 1.15rem; border-bottom: 1px solid rgba(255,255,255,0.06);
+      font-size: 0.85rem; vertical-align: middle;
     }
-    .product-table tbody tr, .orders-table tbody tr {
+    .product-table tbody tr, .orders-table tbody tr, .table tbody tr {
       transition: background var(--ease);
     }
-    .product-table tbody tr:last-child td, .orders-table tbody tr:last-child td { border-bottom: none; }
-    .product-table tbody tr:hover td, .orders-table tbody tr:hover td { background: rgba(34, 211, 238, 0.03); }
+    .product-table tbody tr:last-child td, .orders-table tbody tr:last-child td, .table tbody tr:last-child td { border-bottom: none; }
+    .product-table tbody tr:hover td, .orders-table tbody tr:hover td, .table tbody tr:hover td { background: rgba(34, 211, 238, 0.035); }
+
+    /* Dedicated Coupon Table Enhancements */
+    .coupons-table { min-width: 860px; width: 100%; }
+    .coupons-table th { font-size: 0.74rem; letter-spacing: 0.7px; padding: 0.95rem 1.25rem; }
+    .coupons-table td { padding: 1.05rem 1.25rem; }
+    .coupon-code-badge {
+      font-family: var(--font-mono, monospace);
+      font-weight: 800; font-size: 0.88rem;
+      color: #38bdf8; background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 10px; border-radius: 6px;
+      display: inline-flex; align-items: center; gap: 6px;
+      letter-spacing: 0.5px;
+      box-shadow: 0 2px 8px rgba(56, 189, 248, 0.12);
+    }
+    .coupon-discount-pill {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 6px;
+      font-weight: 800; font-size: 0.88rem;
+    }
+    .coupon-discount-pill.percent {
+      background: rgba(168, 85, 247, 0.14); border: 1px solid rgba(168, 85, 247, 0.35);
+      color: #c084fc;
+    }
+    .coupon-discount-pill.fixed {
+      background: rgba(16, 185, 129, 0.14); border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #34d399;
+    }
+    .coupon-usage-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 0.82rem; font-weight: 700;
+    }
 
     .product-table .prod-img {
       width: 44px; height: 44px; border-radius: 8px;
@@ -706,22 +740,25 @@
         </div>
 
         <!-- Coupon List -->
-        <div class="form-card table-card">
+        <div class="form-card table-card" style="margin-top:1.5rem">
           <div class="table-toolbar">
-            <h2>🎟️ Danh sách Mã Giảm Giá</h2>
-            <button class="btn btn-ghost" onclick="loadCoupons()" style="padding:0.4rem 0.8rem;font-size:0.8rem">🔄 Làm mới</button>
+            <div style="display:flex;align-items:center;gap:0.65rem">
+              <h2>🎟️ Danh sách Mã Giảm Giá</h2>
+              <span id="coupon-count-badge" class="badge" style="background:rgba(34,211,238,0.12);color:var(--lagoon);border:1px solid rgba(34,211,238,0.25);padding:2px 8px;border-radius:12px;font-size:0.75rem;font-weight:700"></span>
+            </div>
+            <button class="btn btn-ghost" onclick="loadCoupons()" style="padding:0.4rem 0.85rem;font-size:0.8rem;display:inline-flex;align-items:center;gap:4px">🔄 Làm mới</button>
           </div>
-          <div class="table-wrap">
-            <table class="table">
+          <div class="table-scroll">
+            <table class="table coupons-table">
               <thead>
                 <tr>
-                  <th>Mã Coupon</th>
-                  <th>Loại & Mức giảm</th>
-                  <th>Đơn tối thiểu</th>
-                  <th>Lượt sử dụng</th>
-                  <th>Hạn dùng</th>
-                  <th>Trạng thái</th>
-                  <th>Thao tác</th>
+                  <th style="min-width:230px">Mã Coupon</th>
+                  <th style="min-width:140px">Loại & Mức giảm</th>
+                  <th style="min-width:130px">Đơn tối thiểu</th>
+                  <th style="min-width:130px">Lượt sử dụng</th>
+                  <th style="min-width:120px">Hạn dùng</th>
+                  <th style="min-width:110px">Trạng thái</th>
+                  <th style="min-width:180px">Thao tác</th>
                 </tr>
               </thead>
               <tbody id="coupons-tbody">
@@ -801,8 +838,8 @@
       <button class="btn btn-ghost" onclick="closeCouponUsagesModal()" style="font-size:1.1rem;padding:0.2rem 0.5rem">✕</button>
     </div>
     <div id="coupon-usages-summary" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem"></div>
-    <div class="table-wrap" style="max-height:360px;overflow-y:auto">
-      <table class="table">
+    <div class="table-scroll" style="max-height:360px;overflow-y:auto">
+      <table class="table orders-table">
         <thead>
           <tr>
             <th>Người dùng</th>
@@ -2124,6 +2161,10 @@ async function loadCoupons() {
 
 function renderCoupons(list) {
   const tbody = document.getElementById('coupons-tbody');
+  const countBadge = document.getElementById('coupon-count-badge');
+  if (countBadge) {
+    countBadge.textContent = list ? `${list.length} mã` : '0 mã';
+  }
   if (!tbody) return;
 
   if (!list || list.length === 0) {
@@ -2134,36 +2175,54 @@ function renderCoupons(list) {
   tbody.innerHTML = list.map(c => {
     const isPercent = c.discount_type === 'percent';
     const discountStr = isPercent
-      ? `<span style="font-weight:700;color:#38bdf8">${c.discount_value}%</span>${c.max_discount > 0 ? ` <small style="color:var(--text-muted)">(Tối đa ${Number(c.max_discount).toLocaleString('vi-VN')}đ)</small>` : ''}`
-      : `<span style="font-weight:700;color:#34d399">${Number(c.discount_value).toLocaleString('vi-VN')}đ</span>`;
+      ? `<div style="display:flex;flex-direction:column;gap:3px;align-items:flex-start"><span class="coupon-discount-pill percent">🏷️ Giảm ${Number(c.discount_value)}%</span>${c.max_discount > 0 ? `<small style="color:var(--text-muted);font-size:0.75rem">Tối đa ${Number(c.max_discount).toLocaleString('vi-VN')}đ</small>` : ''}</div>`
+      : `<span class="coupon-discount-pill fixed">💵 Giảm ${Number(c.discount_value).toLocaleString('vi-VN')}đ</span>`;
 
-    const minOrderStr = c.min_order_amount > 0 ? Number(c.min_order_amount).toLocaleString('vi-VN') + 'đ' : '<span style="color:var(--text-muted)">Không yêu cầu</span>';
-    const usageStr = `${c.used_count || 0} / ${c.max_uses > 0 ? c.max_uses : '∞'}`;
-    const expiresStr = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : '<span style="color:var(--text-muted)">Vĩnh viễn</span>';
+    const minOrderStr = c.min_order_amount > 0
+      ? `<span style="font-family:var(--font-mono);font-weight:700;color:#f1f5f9;font-size:0.86rem">${Number(c.min_order_amount).toLocaleString('vi-VN')}đ</span>`
+      : `<span style="color:var(--text-muted);font-size:0.78rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:3px 8px;border-radius:5px;white-space:nowrap">Không yêu cầu</span>`;
+
+    const used = c.used_count || 0;
+    const max = c.max_uses > 0 ? c.max_uses : '∞';
+    const isMaxReached = c.max_uses > 0 && used >= c.max_uses;
+    const usageStr = `
+      <div class="coupon-usage-badge" style="${isMaxReached ? 'border-color:rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#fca5a5' : ''}">
+        <span style="color:#fff;font-weight:800">${used}</span>
+        <span style="color:var(--text-muted);font-weight:400">/</span>
+        <span style="color:${c.max_uses > 0 ? '#cbd5e1' : '#38bdf8'}">${max}</span>
+        ${isMaxReached ? '<span style="font-size:0.7rem;color:#f87171;font-weight:700;margin-left:2px">(Hết lượt)</span>' : ''}
+      </div>
+    `;
+
+    const expiresStr = c.expires_at
+      ? `<span style="display:inline-flex;align-items:center;gap:4px;color:#f8fafc;font-size:0.8rem;white-space:nowrap">📅 ${new Date(c.expires_at).toLocaleDateString('vi-VN')}</span>`
+      : `<span style="color:var(--text-muted);font-size:0.78rem;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);padding:3px 8px;border-radius:5px;white-space:nowrap">♾️ Vĩnh viễn</span>`;
 
     return `
       <tr>
         <td>
-          <div style="display:flex;flex-direction:column;gap:3px">
-            <span style="font-family:monospace;font-weight:800;color:var(--lagoon);background:rgba(34,211,238,0.1);padding:2px 8px;border-radius:4px;display:inline-block;width:max-content">${escapeTicketHtml(c.code)}</span>
-            ${c.description ? `<small style="color:var(--text-muted);font-size:0.75rem">${escapeTicketHtml(c.description)}</small>` : ''}
+          <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-start">
+            <span class="coupon-code-badge" title="Mã coupon: ${escapeTicketHtml(c.code)}">
+              🎟️ ${escapeTicketHtml(c.code)}
+            </span>
+            ${c.description ? `<div style="color:var(--text-muted);font-size:0.78rem;line-height:1.45;max-width:280px">${escapeTicketHtml(c.description)}</div>` : ''}
           </div>
         </td>
         <td>${discountStr}</td>
         <td>${minOrderStr}</td>
-        <td style="font-weight:700">${usageStr}</td>
+        <td>${usageStr}</td>
         <td>${expiresStr}</td>
         <td>
-          <button class="stock-toggle ${c.is_active ? 'in-stock' : 'out-stock'}" onclick="toggleCoupon(${c.id}, ${!c.is_active})" title="Bấm để bật/tắt mã">
+          <button class="stock-toggle ${c.is_active ? 'in-stock' : 'out-of-stock'}" onclick="toggleCoupon(${c.id}, ${!c.is_active})" title="Bấm để ${c.is_active ? 'tắt' : 'bật'} mã này" style="cursor:pointer">
             ${c.is_active ? '🟢 Đang bật' : '🔴 Đã tắt'}
           </button>
         </td>
         <td>
-          <div style="display:flex;gap:0.4rem;align-items:center">
-            <button class="btn btn-ghost" onclick="showCouponUsages(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.3rem 0.6rem;font-size:0.75rem" title="Xem danh sách người đã dùng mã này">
-              👥 Xem ai đã dùng (${c.usages_count || c.used_count || 0})
+          <div style="display:flex;gap:0.45rem;align-items:center;flex-wrap:nowrap">
+            <button class="btn btn-ghost" onclick="showCouponUsages(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.4rem 0.75rem;font-size:0.78rem;display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.28);color:#a5b4fc;border-radius:6px;white-space:nowrap" title="Xem danh sách người đã dùng mã này">
+              👥 Ai đã dùng (${c.usages_count || c.used_count || 0})
             </button>
-            <button class="btn btn-danger" onclick="deleteCoupon(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.3rem 0.55rem;font-size:0.75rem" title="Xóa mã coupon">
+            <button class="btn btn-danger" onclick="deleteCoupon(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.4rem 0.65rem;font-size:0.78rem;border-radius:6px" title="Xóa mã coupon này">
               🗑️
             </button>
           </div>
@@ -2380,6 +2439,12 @@ async function handleSaveAnnouncement(e) {
     if (typeof api.showToast === 'function') api.showToast(res.message || 'Lưu banner thành công!', 'success');
     msgBox.innerHTML = `<div class="alert alert-success" style="margin:0">✅ ${escapeTicketHtml(res.message)}</div>`;
     updateAnnouncementPreview();
+
+    // Clear dismissed cache and trigger live banner update immediately
+    sessionStorage.removeItem('dismissed_announcement');
+    if (typeof window.reloadTopAnnouncement === 'function') {
+      window.reloadTopAnnouncement(true);
+    }
   } catch (err) {
     if (window.SoundFX) SoundFX.playError();
     msgBox.innerHTML = `<div class="alert alert-error" style="margin:0">❌ ${escapeTicketHtml(err.message)}</div>`;

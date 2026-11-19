@@ -2078,7 +2078,7 @@ window.addEventListener('daotomo:auth-changed', () => {
 (function() {
   if (typeof window !== 'undefined') {
     const s = document.createElement('script');
-    s.src = '/js/announcement.js?v=1.0';
+    s.src = '/js/announcement.js?v=1.1';
     s.defer = true;
     document.head.appendChild(s);
   }
