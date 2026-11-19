@@ -36,7 +36,7 @@ class LuckyWheelController extends Controller
      */
     public function status(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = auth('sanctum')->user() ?? $request->user('sanctum') ?? $request->user();
         $luckySpins = $user ? (int) ($user->lucky_spins ?? 0) : 0;
         $coins = $user ? (int) ($user->coins ?? 0) : 0;
 

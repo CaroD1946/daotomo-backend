@@ -38,6 +38,8 @@ class UserResource extends JsonResource
             'skinUrl' => $this->skin_url ?? '',
             'skin_url' => $this->skin_url ?? '',
             'coins' => (int) $this->coins,
+            'luckySpins' => (int) ($this->lucky_spins ?? 0),
+            'lucky_spins' => (int) ($this->lucky_spins ?? 0),
             'createdAt' => $this->created_at ? $this->created_at->toISOString() : null,
             'created_at' => $this->created_at ? $this->created_at->toISOString() : null,
         ];

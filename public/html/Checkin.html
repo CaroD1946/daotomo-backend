@@ -615,8 +615,8 @@
               <strong id="lw-spins-val" style="color:#38bdf8;font-size:1.15rem;font-family:var(--font-mono)">0</strong>
             </div>
           </div>
-          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:0.6rem 1.25rem;display:flex;align-items:center;gap:0.5rem">
-            <span style="font-size:1.2rem">🪙</span>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:0.6rem 1.25rem;display:flex;align-items:center;gap:0.65rem">
+            <img src="/img/coin.png" alt="Coin" style="width:24px;height:24px;object-fit:contain;flex-shrink:0">
             <div style="text-align:left">
               <span style="font-size:0.75rem;color:var(--text-muted);display:block">Kho Xu của bạn:</span>
               <strong id="lw-coins-val" style="color:#fbbf24;font-size:1.15rem;font-family:var(--font-mono)">0</strong>
@@ -713,9 +713,31 @@ async function syncUserGameLink() {
     currentUser = res?.user || res?.data?.user || res?.data || res || null;
     if (currentUser) {
       api.setUser(currentUser);
+      if (currentUser.coins !== undefined) {
+        userCoins = Number(currentUser.coins || 0);
+        const coinsEl = document.getElementById('lw-coins-val');
+        if (coinsEl) coinsEl.textContent = userCoins.toLocaleString('vi-VN');
+      }
+      if (currentUser.lucky_spins !== undefined || currentUser.luckySpins !== undefined) {
+        userSpins = Number(currentUser.lucky_spins ?? currentUser.luckySpins ?? 0);
+        const spinsEl = document.getElementById('lw-spins-val');
+        if (spinsEl) spinsEl.textContent = userSpins;
+      }
     }
   } catch (e) {
     currentUser = api.getUser();
+    if (currentUser) {
+      if (currentUser.coins !== undefined) {
+        userCoins = Number(currentUser.coins || 0);
+        const coinsEl = document.getElementById('lw-coins-val');
+        if (coinsEl) coinsEl.textContent = userCoins.toLocaleString('vi-VN');
+      }
+      if (currentUser.lucky_spins !== undefined || currentUser.luckySpins !== undefined) {
+        userSpins = Number(currentUser.lucky_spins ?? currentUser.luckySpins ?? 0);
+        const spinsEl = document.getElementById('lw-spins-val');
+        if (spinsEl) spinsEl.textContent = userSpins;
+      }
+    }
   }
 
   const isLinked = Boolean(currentUser && (currentUser.isGameLinked || currentUser.minecraftUuid || currentUser.is_game_linked || currentUser.minecraft_uuid));
@@ -893,12 +915,33 @@ const WHEEL_COLORS = [
 ];
 
 async function loadLuckyWheelState() {
+  // 1. Optimistic render from cached user session immediately
+  const cur = currentUser || (typeof api.getUser === 'function' ? api.getUser() : null);
+  if (cur) {
+    if (cur.coins !== undefined) userCoins = Number(cur.coins || 0);
+    if (cur.lucky_spins !== undefined || cur.luckySpins !== undefined) {
+      userSpins = Number(cur.lucky_spins ?? cur.luckySpins ?? 0);
+    }
+    const spinsEl = document.getElementById('lw-spins-val');
+    const coinsEl = document.getElementById('lw-coins-val');
+    if (spinsEl) spinsEl.textContent = userSpins;
+    if (coinsEl) coinsEl.textContent = userCoins.toLocaleString('vi-VN');
+  }
+
   try {
     const res = await api.getLuckyWheelStatus();
     if (res && res.success) {
       wheelSlots = res.slots || [];
-      userSpins = Number(res.lucky_spins || 0);
-      userCoins = Number(res.coins || 0);
+      if (res.lucky_spins !== undefined) userSpins = Number(res.lucky_spins || 0);
+      if (res.coins !== undefined) userCoins = Number(res.coins || 0);
+
+      // Persist latest coins & spins back to user cache
+      const u = typeof api.getUser === 'function' ? api.getUser() : null;
+      if (u) {
+        u.coins = userCoins;
+        u.lucky_spins = userSpins;
+        if (typeof api.setUser === 'function') api.setUser(u);
+      }
 
       const spinsEl = document.getElementById('lw-spins-val');
       const coinsEl = document.getElementById('lw-coins-val');
@@ -907,7 +950,9 @@ async function loadLuckyWheelState() {
 
       drawWheel();
     }
-  } catch (e) {}
+  } catch (e) {
+    console.warn('Failed to load lucky wheel status:', e);
+  }
 }
 
 function drawWheel() {
@@ -1003,6 +1048,13 @@ async function handleSpinWheel() {
     const reward = res.reward;
     userSpins = res.remaining_spins;
     userCoins = res.remaining_coins;
+
+    const u = typeof api.getUser === 'function' ? api.getUser() : null;
+    if (u) {
+      u.coins = userCoins;
+      u.lucky_spins = userSpins;
+      if (typeof api.setUser === 'function') api.setUser(u);
+    }
 
     const spinsEl = document.getElementById('lw-spins-val');
     const coinsEl = document.getElementById('lw-coins-val');

@@ -196,9 +196,19 @@ class NewFeaturesTest extends TestCase
             'lucky_spins' => 2,
         ]);
 
-        // Check status
+        // Check status with actingAs
         $resStatus = $this->actingAs($user)->getJson('/api/lucky-wheel/status');
         $resStatus->assertStatus(200)
+            ->assertJson([
+                'success' => true,
+                'lucky_spins' => 2,
+                'coins' => 50,
+            ]);
+
+        // Check status with Bearer token header (real API client flow)
+        $bearerToken = $user->createToken('test-wheel')->plainTextToken;
+        $resBearer = $this->withHeader('Authorization', 'Bearer ' . $bearerToken)->getJson('/api/lucky-wheel/status');
+        $resBearer->assertStatus(200)
             ->assertJson([
                 'success' => true,
                 'lucky_spins' => 2,

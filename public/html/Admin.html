@@ -289,6 +289,12 @@
 
     <div id="auth-check" class="alert alert-error hidden">⛔ Bạn không có quyền truy cập trang này.</div>
 
+    <div id="admin-loading" class="hidden" style="text-align:center;padding:3.5rem 1rem">
+      <div class="spinner" style="margin:0 auto 1.25rem;width:42px;height:42px;border-width:3px"></div>
+      <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:0.4rem">⏳ Đang tải bảng điều khiển Admin...</div>
+      <p style="font-size:0.85rem;color:var(--text-muted)">Hệ thống đang đồng bộ dữ liệu và xác thực quyền quản trị.</p>
+    </div>
+
     <div id="admin-content" class="hidden">
       <!-- ═══ KPI METRIC SUMMARY CARDS ═══ -->
       <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:1rem;margin-bottom:2rem">
@@ -973,33 +979,93 @@
 const API_ADMIN = typeof API !== 'undefined' ? API : '/api';
 const catLabel = { crate:'📦 Hòm', cosmetic:'✨ Cosmetic', pet:'🐾 Pet', key:'🗝️ Key', bundle:'🎒 Bundle', vip:'👑 VIP' };
 
-/* ── Auth check ── */
-document.addEventListener('DOMContentLoaded', async () => {
+/* ── Auth check & Initialization ── */
+let adminDataLoaded = false;
+
+async function initAdmin() {
   const urlParams = new URLSearchParams(window.location.search);
   const qToken = urlParams.get('token');
   if (qToken) {
     localStorage.setItem('dtm_token', qToken);
   }
+
+  const authCheckEl = document.getElementById('auth-check');
+  const loadingEl = document.getElementById('admin-loading');
+  const contentEl = document.getElementById('admin-content');
+
   if (!api.isLoggedIn()) {
-    document.getElementById('auth-check').classList.remove('hidden');
-    document.getElementById('auth-check').textContent = '⛔ Bạn chưa đăng nhập.';
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (contentEl) contentEl.classList.add('hidden');
+    if (authCheckEl) {
+      authCheckEl.classList.remove('hidden');
+      authCheckEl.innerHTML = '⛔ Bạn chưa đăng nhập tài khoản. <a href="/html/Account.html?redirect=/html/Admin.html" style="color:#38bdf8;text-decoration:underline;margin-left:8px;font-weight:700">Đăng nhập ngay →</a>';
+    }
     return;
   }
+
+  // 1. Instant Optimistic Rendering if already cached as admin
+  if (api.isAdmin()) {
+    if (contentEl) contentEl.classList.remove('hidden');
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (authCheckEl) authCheckEl.classList.add('hidden');
+    if (!adminDataLoaded) {
+      adminDataLoaded = true;
+      loadAnalytics().catch(e => console.warn('Analytics err:', e));
+      loadProducts().catch(e => console.warn('Products err:', e));
+      loadOrders().catch(e => console.warn('Orders err:', e));
+    }
+  } else {
+    // If not cached as admin, show loading indicator
+    if (loadingEl) loadingEl.classList.remove('hidden');
+  }
+
+  // 2. Server verification via /auth/me
   try {
-    const { user } = await api.getMe();
-    if (user.role !== 'admin') {
-      document.getElementById('auth-check').classList.remove('hidden');
+    const res = await api.getMe();
+    const user = res?.user || res?.data?.user || res?.data || res;
+    const role = String(user?.role || (user?.is_admin ? 'admin' : '') || '').toLowerCase();
+
+    if (role !== 'admin') {
+      if (contentEl) contentEl.classList.add('hidden');
+      if (loadingEl) loadingEl.classList.add('hidden');
+      if (authCheckEl) {
+        authCheckEl.classList.remove('hidden');
+        authCheckEl.innerHTML = '⛔ Tài khoản của bạn không có quyền truy cập trang quản trị Admin. <a href="/html/Store.html" style="color:#38bdf8;text-decoration:underline;margin-left:8px;font-weight:700">← Về Cửa Hàng</a>';
+      }
       return;
     }
-    document.getElementById('admin-content').classList.remove('hidden');
-    loadAnalytics();
-    loadProducts();
-    // Load background stats
-    loadOrders();
-  } catch(e) {
-    document.getElementById('auth-check').classList.remove('hidden');
+
+    // Role confirmed as admin
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (authCheckEl) authCheckEl.classList.add('hidden');
+    if (contentEl) contentEl.classList.remove('hidden');
+
+    if (!adminDataLoaded) {
+      adminDataLoaded = true;
+      loadAnalytics().catch(e => console.warn('Analytics err:', e));
+      loadProducts().catch(e => console.warn('Products err:', e));
+      loadOrders().catch(e => console.warn('Orders err:', e));
+    }
+  } catch (err) {
+    console.warn('Admin auth verification exception:', err);
+    if (loadingEl) loadingEl.classList.add('hidden');
+    if (!api.isAdmin()) {
+      if (authCheckEl) {
+        authCheckEl.classList.remove('hidden');
+        authCheckEl.innerHTML = '⚠️ Không thể xác thực quyền truy cập: ' + (err.message || 'Lỗi mạng') + '. <a href="/html/Account.html?redirect=/html/Admin.html" style="color:#38bdf8;text-decoration:underline;margin-left:8px;font-weight:700">Đăng nhập lại →</a>';
+      }
+    } else {
+      // Keep optimistic view alive
+      if (contentEl) contentEl.classList.remove('hidden');
+    }
   }
-});
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAdmin);
+} else {
+  initAdmin();
+}
 
 /* ── Tabs ── */
 function switchTab(name) {
