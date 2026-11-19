@@ -391,25 +391,81 @@
       box-shadow: 0 2px 6px rgba(0,0,0,0.5);
     }
     @media (max-width: 640px) {
+      main#main {
+        padding-bottom: 90px;
+      }
       .floating-cart-btn {
         bottom: 16px;
         right: 74px;
         width: 48px;
         height: 48px;
-        border-radius: 6px;
+        border-radius: 8px;
+      }
+      /* Card actions responsive 2-row layout */
+      .product-card .card-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
+        margin-top: 0.5rem;
+      }
+      .product-card .btn-detail {
+        order: 3;
+        flex: 1 1 100%;
+        min-height: 28px;
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        color: #94a3b8;
+        text-align: center;
+        justify-content: center;
+      }
+      .product-card .btn-detail:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: #fff;
+      }
+      .product-card .btn-buy {
+        order: 1;
+        flex: 1 1 auto;
+        min-height: 36px;
+        padding: 0.4rem 0.5rem;
+        font-size: 0.78rem;
+        font-weight: 700;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+        justify-content: center;
+      }
+      .product-card .btn-cart-add {
+        order: 2;
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        min-height: 36px;
+        padding: 0;
       }
     }
     .cart-drawer-overlay {
       position: fixed; inset: 0;
       background: rgba(0,0,0,0.65);
       backdrop-filter: blur(4px);
-      z-index: 1000;
+      z-index: 100000;
       opacity: 0; pointer-events: none;
       transition: opacity 0.25s ease;
       display: flex; justify-content: flex-end;
     }
     .cart-drawer-overlay.open {
       opacity: 1; pointer-events: auto;
+    }
+    body.cart-drawer-open .floating-cart-btn,
+    body.cart-drawer-open #dtm-fab-widget,
+    body.cart-drawer-open .dtm-fab-widget {
+      opacity: 0 !important;
+      pointer-events: none !important;
+      visibility: hidden !important;
+      transform: scale(0.85) !important;
+      transition: opacity 0.2s ease, transform 0.2s ease !important;
     }
     .cart-drawer {
       width: 100%; max-width: 440px;
@@ -874,6 +930,16 @@ let userRankStatus = { current_tier: 0, current_rank: 'Chưa có' };
 // ─── TỐI ƯU HIỆU NĂNG: STALE-WHILE-REVALIDATE CACHE (0ms Render) ───
 let hasRenderedFromCache = false;
 try {
+  const cachedRank = localStorage.getItem('dtm_user_rank_cache');
+  if (cachedRank && api.isLoggedIn()) {
+    const parsedRank = JSON.parse(cachedRank);
+    if (parsedRank && typeof parsedRank.current_tier === 'number') {
+      userRankStatus = parsedRank;
+    }
+  }
+} catch (e) {}
+
+try {
   const cachedProducts = localStorage.getItem('dtm_store_products_cache');
   if (cachedProducts) {
     const parsed = JSON.parse(cachedProducts);
@@ -917,6 +983,22 @@ async function loadProducts() {
 
     if (rankRes && rankRes.success) {
       userRankStatus = rankRes;
+      try {
+        localStorage.setItem('dtm_user_rank_cache', JSON.stringify(userRankStatus));
+      } catch (e) {}
+      syncCartWithUserRank();
+      updateFloatingCartBadge();
+      if (document.getElementById('cart-drawer-overlay')?.classList.contains('open')) {
+        renderCartDrawer();
+      }
+    } else if (!api.isLoggedIn()) {
+      userRankStatus = { current_tier: 0, current_rank: 'Chưa có' };
+      try { localStorage.removeItem('dtm_user_rank_cache'); } catch (e) {}
+      syncCartWithUserRank();
+      updateFloatingCartBadge();
+      if (document.getElementById('cart-drawer-overlay')?.classList.contains('open')) {
+        renderCartDrawer();
+      }
     }
 
     if (prodRes && prodRes.data) {
@@ -924,6 +1006,8 @@ async function loadProducts() {
       try {
         localStorage.setItem('dtm_store_products_cache', JSON.stringify(products));
       } catch (e) {}
+      syncCartWithUserRank();
+      updateFloatingCartBadge();
       filterAndSortProducts();
     }
   } catch (e) {
@@ -1078,27 +1162,142 @@ function updateFloatingCartBadge() {
 
 window.addEventListener('daotomo:cart-updated', updateFloatingCartBadge);
 
+function syncCartWithUserRank() {
+  if (!api.cart) return;
+  const items = api.cart.getItems();
+  if (!items || !items.length) return;
+
+  const rankTierMap = {
+    'rank-knight': 1, 'rank_knight': 1,
+    'rank-legend': 2, 'rank_legend': 2,
+    'rank-master': 3, 'rank_master': 3,
+    'rank-overlord': 4, 'rank_overlord': 4,
+    'rank-god': 5, 'rank_god': 5
+  };
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  const userCurTier = userRankStatus.current_tier || 0;
+  const userCurPrice = rankPrices[userCurTier] || 0;
+
+  let hasChanged = false;
+
+  items.forEach(it => {
+    const prod = (products || []).find(p => p._id === it.productId || p.id === it.productId);
+    const pSlug = it.slug || (prod && prod.slug) || '';
+    const pReward = it.game_reward || (prod && prod.game_reward) || '';
+    const pName = (it.name || (prod && prod.name) || '').toLowerCase();
+    let pTier = rankTierMap[pSlug] || rankTierMap[pReward] || 0;
+    if (!pTier) {
+      if (pName.includes('god')) pTier = 5;
+      else if (pName.includes('overlord')) pTier = 4;
+      else if (pName.includes('master')) pTier = 3;
+      else if (pName.includes('legend')) pTier = 2;
+      else if (pName.includes('knight')) pTier = 1;
+    }
+
+    if (pTier > 0) {
+      const origPrice = (prod && prod.price) || it.originalPrice || rankPrices[pTier] || it.price;
+      it.originalPrice = origPrice;
+
+      if (userCurTier > 0 && userCurTier < pTier) {
+        const upPrice = Math.max(0, origPrice - userCurPrice);
+        if (it.price !== upPrice || !it.isUpgrade || it.quantity !== 1) {
+          it.price = upPrice;
+          it.isUpgrade = true;
+          it.upgradeFromRank = userRankStatus.current_rank || ('Cấp ' + userCurTier);
+          it.upgradeDiscount = userCurPrice;
+          it.quantity = 1;
+          delete it.isOwnedOrHigher;
+          delete it.ownedRankName;
+          hasChanged = true;
+        }
+      } else if (userCurTier === 0) {
+        if (it.price !== origPrice || it.isUpgrade) {
+          it.price = origPrice;
+          it.isUpgrade = false;
+          delete it.upgradeFromRank;
+          delete it.upgradeDiscount;
+          delete it.isOwnedOrHigher;
+          delete it.ownedRankName;
+          hasChanged = true;
+        }
+      } else if (userCurTier >= pTier) {
+        it.isOwnedOrHigher = true;
+        it.ownedRankName = userRankStatus.current_rank || ('Cấp ' + userCurTier);
+        hasChanged = true;
+      }
+    }
+  });
+
+  if (hasChanged) {
+    api.cart.saveItems(items);
+  }
+}
+
 function handleAddToCart(productId, evt) {
   if (evt) evt.stopPropagation();
-  const prod = products.find(p => p._id === productId);
+  const prod = products.find(p => p._id === productId || p.id === productId);
   if (!prod) return;
 
-  api.cart.addItem(prod, 1);
+  const rankTierMap = {
+    'rank-knight': 1, 'rank_knight': 1,
+    'rank-legend': 2, 'rank_legend': 2,
+    'rank-master': 3, 'rank_master': 3,
+    'rank-overlord': 4, 'rank_overlord': 4,
+    'rank-god': 5, 'rank_god': 5
+  };
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  const userCurTier = userRankStatus.current_tier || 0;
+  let pTier = rankTierMap[prod.slug] || rankTierMap[prod.game_reward] || 0;
+  if (!pTier && prod.name) {
+    const pName = prod.name.toLowerCase();
+    if (pName.includes('god')) pTier = 5;
+    else if (pName.includes('overlord')) pTier = 4;
+    else if (pName.includes('master')) pTier = 3;
+    else if (pName.includes('legend')) pTier = 2;
+    else if (pName.includes('knight')) pTier = 1;
+  }
+
+  if (pTier > 0 && userCurTier >= pTier) {
+    const isExact = (userCurTier === pTier);
+    const msg = isExact ? 'Bạn đã sở hữu Rank này rồi!' : 'Bạn đã sở hữu Rank cấp cao hơn rồi!';
+    if (typeof api.showToast === 'function') api.showToast(msg, 'error');
+    else alert(msg);
+    return;
+  }
+
+  let customOptions = {};
+  if (pTier > 0 && userCurTier > 0 && userCurTier < pTier) {
+    const userCurPrice = rankPrices[userCurTier] || 0;
+    const upPrice = Math.max(0, (prod.price || 0) - userCurPrice);
+    customOptions = {
+      price: upPrice,
+      originalPrice: prod.price,
+      isUpgrade: true,
+      upgradeFromRank: userRankStatus.current_rank || ('Cấp ' + userCurTier),
+      upgradeDiscount: userCurPrice
+    };
+  }
+
+  api.cart.addItem(prod, 1, customOptions);
   if (window.SoundFX) SoundFX.playSuccess();
   if (typeof api.showToast === 'function') {
-    api.showToast(`Đã thêm "${prod.name}" vào giỏ hàng!`, 'success');
+    const priceText = customOptions.isUpgrade ? ` (${customOptions.price.toLocaleString('vi-VN')}đ - Giá nâng cấp)` : '';
+    api.showToast(`Đã thêm "${prod.name}" vào giỏ hàng!${priceText}`, 'success');
   }
 }
 
 function openCartDrawer() {
+  syncCartWithUserRank();
   renderCartDrawer();
   document.getElementById('cart-drawer-overlay').classList.add('open');
+  document.body.classList.add('cart-drawer-open');
   if (window.SoundFX) SoundFX.playClick();
 }
 
 function closeCartDrawer(evt) {
   if (evt && evt.target !== evt.currentTarget) return;
   document.getElementById('cart-drawer-overlay').classList.remove('open');
+  document.body.classList.remove('cart-drawer-open');
 }
 
 let cartAppliedCoupon = null;
@@ -1157,6 +1356,7 @@ function renderCartDrawerTotals() {
 }
 
 function renderCartDrawer() {
+  syncCartWithUserRank();
   const items = api.cart.getItems();
   const countEl = document.getElementById('cart-drawer-count');
   if (countEl) countEl.textContent = api.cart.getCount();
@@ -1197,20 +1397,39 @@ function renderCartDrawer() {
     return;
   }
 
+  const hasInvalidItem = items.some(it => it.isOwnedOrHigher);
   const checkoutBtn = document.getElementById('btn-cart-checkout');
-  if (checkoutBtn) checkoutBtn.disabled = (!linkedMc && !isGuestOrAdmin);
+  if (checkoutBtn) checkoutBtn.disabled = (!linkedMc && !isGuestOrAdmin) || hasInvalidItem;
 
   bodyEl.innerHTML = items.map(it => `
-    <div class="cart-item">
+    <div class="cart-item" style="${it.isOwnedOrHigher ? 'border:1px solid rgba(239,68,68,0.45);background:rgba(239,68,68,0.06)' : ''}">
       <img src="${api.escapeHtml(api.safeUrl(it.image, '/img/logo.jpg'))}" class="cart-item-img" alt="${api.escapeHtml(it.name)}">
       <div class="cart-item-info">
-        <div class="cart-item-name">${api.escapeHtml(it.name)}</div>
-        <div class="cart-item-price">${Number(it.price || 0).toLocaleString('vi-VN')}đ</div>
+        <div class="cart-item-name" style="display:flex;align-items:center;gap:0.35rem;flex-wrap:wrap">
+          <span>${api.escapeHtml(it.name)}</span>
+          ${it.isUpgrade ? `<span style="font-size:0.68rem;background:rgba(124,58,237,0.25);color:#c084fc;padding:1px 6px;border-radius:4px;font-weight:700">⚡ Nâng cấp</span>` : ''}
+        </div>
+        <div class="cart-item-price" style="display:flex;align-items:baseline;gap:0.35rem">
+          <span style="color:#22d3ee">${Number(it.price || 0).toLocaleString('vi-VN')}đ</span>
+          ${(it.isUpgrade && it.originalPrice && it.originalPrice > it.price) ? `<span style="font-size:0.72rem;color:#94a3b8;text-decoration:line-through">${Number(it.originalPrice).toLocaleString('vi-VN')}đ</span>` : ''}
+        </div>
+        ${it.isUpgrade && it.upgradeFromRank ? `
+          <div style="font-size:0.7rem;color:#34d399;margin-top:2px">
+            Khấu trừ -${Number(it.upgradeDiscount || 0).toLocaleString('vi-VN')}đ (từ Rank ${api.escapeHtml(it.upgradeFromRank)})
+          </div>` : ''}
+        ${it.isOwnedOrHigher ? `
+          <div style="font-size:0.72rem;color:#ef4444;font-weight:700;margin-top:2px">
+            ⚠️ Bạn đã có Rank ${api.escapeHtml(it.ownedRankName || '')}!
+          </div>` : ''}
       </div>
       <div class="cart-item-qty">
-        <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', -1)">-</button>
-        <span style="font-family:var(--font-mono);font-size:0.85rem;font-weight:700;padding:0 4px">${it.quantity}</span>
-        <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', 1)">+</button>
+        ${it.isUpgrade ? `
+          <span style="font-family:var(--font-mono);font-size:0.8rem;font-weight:700;color:var(--text-muted);padding:0 6px">x1</span>
+        ` : `
+          <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', -1)">-</button>
+          <span style="font-family:var(--font-mono);font-size:0.85rem;font-weight:700;padding:0 4px">${it.quantity}</span>
+          <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', 1)">+</button>
+        `}
       </div>
       <button class="cart-item-del" onclick="removeCartItem('${it.productId}')" title="Xóa">✕</button>
     </div>
@@ -1223,6 +1442,10 @@ function updateCartItemQty(productId, delta) {
   const items = api.cart.getItems();
   const it = items.find(i => i.productId === productId);
   if (!it) return;
+  if (it.isUpgrade && delta > 0) {
+    if (typeof api.showToast === 'function') api.showToast('Gói nâng cấp Rank chỉ áp dụng cho 1 lượt mua!', 'warning');
+    return;
+  }
   const newQty = it.quantity + delta;
   api.cart.updateQty(productId, newQty);
   renderCartDrawer();
@@ -1247,6 +1470,13 @@ async function checkoutCart() {
     if (typeof api.showToast === 'function') api.showToast('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!', 'error');
     else alert('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!');
     location.href = '/html/Account.html?redirect=/html/Store.html';
+    return;
+  }
+
+  const hasInvalidItem = items.some(it => it.isOwnedOrHigher);
+  if (hasInvalidItem) {
+    if (typeof api.showToast === 'function') api.showToast('Giỏ hàng có sản phẩm Rank bạn đã sở hữu, vui lòng xóa trước khi thanh toán!', 'error');
+    else alert('Giỏ hàng có sản phẩm Rank bạn đã sở hữu, vui lòng xóa trước khi thanh toán!');
     return;
   }
 

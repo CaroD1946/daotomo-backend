@@ -480,21 +480,46 @@ const api = {
       localStorage.setItem(this.getKey(), JSON.stringify(items));
       window.dispatchEvent(new CustomEvent('daotomo:cart-updated', { detail: { items } }));
     },
-    addItem(product, qty = 1) {
+    addItem(product, qty = 1, options = {}) {
       const items = this.getItems();
       const pId = product._id || product.id;
       const existing = items.find(it => it.productId === pId);
+
+      const price = (options && typeof options.price === 'number') ? options.price : (product.price || 0);
+      const isUpgrade = options && !!options.isUpgrade;
+      const originalPrice = (options && typeof options.originalPrice === 'number') ? options.originalPrice : (product.price || 0);
+      const upgradeFromRank = (options && options.upgradeFromRank) ? options.upgradeFromRank : '';
+      const upgradeDiscount = (options && typeof options.upgradeDiscount === 'number') ? options.upgradeDiscount : 0;
+
       if (existing) {
-        existing.quantity = Math.min(99, existing.quantity + qty);
+        if (isUpgrade || existing.isUpgrade) {
+          existing.quantity = 1;
+        } else {
+          existing.quantity = Math.min(99, existing.quantity + qty);
+        }
+        if (options && typeof options.price === 'number') {
+          existing.price = price;
+        }
+        if (options && options.isUpgrade !== undefined) {
+          existing.isUpgrade = isUpgrade;
+          existing.originalPrice = originalPrice;
+          existing.upgradeFromRank = upgradeFromRank;
+          existing.upgradeDiscount = upgradeDiscount;
+        }
       } else {
         items.push({
           productId: pId,
           name: product.name,
-          price: product.price,
+          price: price,
+          originalPrice: originalPrice,
+          isUpgrade: isUpgrade,
+          upgradeFromRank: upgradeFromRank,
+          upgradeDiscount: upgradeDiscount,
           image: product.image,
           category: product.category,
           slug: product.slug,
-          quantity: qty
+          game_reward: product.game_reward,
+          quantity: isUpgrade ? 1 : qty
         });
       }
       this.saveItems(items);
@@ -506,7 +531,9 @@ const api = {
         items = items.filter(it => it.productId !== productId);
       } else {
         const item = items.find(it => it.productId === productId);
-        if (item) item.quantity = Math.min(99, qty);
+        if (item) {
+          item.quantity = item.isUpgrade ? 1 : Math.min(99, qty);
+        }
       }
       this.saveItems(items);
       return items;
@@ -999,7 +1026,7 @@ function initFloatingActionWidget() {
   widget.id = 'dtm-fab-widget';
   widget.className = 'dtm-fab-widget';
   widget.setAttribute('aria-label', 'Tiện ích Đảo Tò Mò');
-  widget.style.cssText = 'position:fixed !important;bottom:22px !important;right:22px !important;z-index:99990 !important;width:52px !important;height:52px !important;display:block !important;pointer-events:none !important;margin:0 !important;padding:0 !important;transform:none !important;';
+  widget.style.cssText = 'position:fixed !important;z-index:99990 !important;display:block !important;pointer-events:none !important;margin:0 !important;padding:0 !important;transform:none !important;';
 
   const soundLabel = SoundFX.enabled ? 'Âm thanh: BẬT' : 'Âm thanh: TẮT';
 

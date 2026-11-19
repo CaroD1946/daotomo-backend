@@ -32,14 +32,12 @@ class OrderService
     public static function getRankTier(string $identifier): int
     {
         $id = strtolower(trim(str_replace(['rank-', 'rank_'], '', $identifier)));
-        return match ($id) {
-            'knight'   => 1,
-            'legend'   => 2,
-            'master'   => 3,
-            'overlord' => 4,
-            'god'      => 5,
-            default    => 0,
-        };
+        if ($id === 'god' || preg_match('/\bgod\b/i', $id)) return 5;
+        if ($id === 'overlord' || preg_match('/\boverlord\b/i', $id)) return 4;
+        if ($id === 'master' || preg_match('/\bmaster\b/i', $id)) return 3;
+        if ($id === 'legend' || preg_match('/\blegend\b/i', $id)) return 2;
+        if ($id === 'knight' || preg_match('/\bknight\b/i', $id)) return 1;
+        return 0;
     }
 
     /**
@@ -89,7 +87,7 @@ class OrderService
 
             foreach ($paidOrders as $ord) {
                 foreach ($ord->items as $it) {
-                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: '');
+                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: $it->product_name ?: '');
                     if ($tier > $highestTier) {
                         $highestTier = $tier;
                     }
@@ -107,7 +105,7 @@ class OrderService
 
             foreach ($mcOrders as $ord) {
                 foreach ($ord->items as $it) {
-                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: '');
+                    $tier = self::getRankTier($it->product?->game_reward ?: $it->product?->slug ?: $it->product_name ?: '');
                     if ($tier > $highestTier) {
                         $highestTier = $tier;
                     }
@@ -405,9 +403,10 @@ class OrderService
                     ];
                 } elseif ($userHighest['tier'] > 0) {
                     // Calculate Rank Upgrade offset
+                    $fallbackRankPrices = [1 => 49000, 2 => 89000, 3 => 129000, 4 => 169000, 5 => 219000];
                     $ownedRankSlug = self::getRankSlugByTier($userHighest['tier']);
                     $ownedProduct = Product::where('slug', $ownedRankSlug)->orWhere('game_reward', 'rank_' . str_replace('rank-', '', $ownedRankSlug))->first();
-                    $ownedPrice = $ownedProduct ? (float) $ownedProduct->price : 0;
+                    $ownedPrice = ($ownedProduct && (float)$ownedProduct->price > 0) ? (float) $ownedProduct->price : ($fallbackRankPrices[$userHighest['tier']] ?? 0);
                     $upgradeDiscount = min((float) $product->price, $ownedPrice);
                     $itemName .= " (Nâng cấp từ Rank " . self::getRankTitleByTier($userHighest['tier']) . ")";
                     $note = trim($note . " [Nâng cấp từ Rank {$userHighest['rank_name']} (-" . number_format($upgradeDiscount, 0, ',', '.') . "đ)]");

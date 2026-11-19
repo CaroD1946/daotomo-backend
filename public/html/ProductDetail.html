@@ -1181,13 +1181,55 @@ async function applyCouponDetail() {
 function handleAddToCartDetail() {
   if (!currentProduct) return;
   const qty = parseInt(document.getElementById('buy-qty')?.value) || 1;
+
+  const rankTierMap = {
+    'rank-knight': 1, 'rank_knight': 1,
+    'rank-legend': 2, 'rank_legend': 2,
+    'rank-master': 3, 'rank_master': 3,
+    'rank-overlord': 4, 'rank_overlord': 4,
+    'rank-god': 5, 'rank_god': 5
+  };
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  let pTier = rankTierMap[currentProduct.slug] || rankTierMap[currentProduct.game_reward] || 0;
+  if (!pTier && currentProduct.name) {
+    const pName = currentProduct.name.toLowerCase();
+    if (pName.includes('god')) pTier = 5;
+    else if (pName.includes('overlord')) pTier = 4;
+    else if (pName.includes('master')) pTier = 3;
+    else if (pName.includes('legend')) pTier = 2;
+    else if (pName.includes('knight')) pTier = 1;
+  }
+
+  if (pTier > 0 && userRankTier >= pTier) {
+    const isExact = (userRankTier === pTier);
+    const msg = isExact ? 'Bạn đã sở hữu Rank này rồi!' : 'Bạn đã có Rank cấp cao hơn rồi!';
+    if (typeof api.showToast === 'function') api.showToast(msg, 'error');
+    else alert(msg);
+    return;
+  }
+
+  let customOptions = {};
+  if (pTier > 0 && userRankTier > 0 && userRankTier < pTier) {
+    const currentRankPrice = rankPrices[userRankTier] || 0;
+    const upgradeDiscount = Math.min(Number(currentProduct.price || 0), currentRankPrice);
+    const finalVndPrice = Math.max(0, Number(currentProduct.price || 0) - upgradeDiscount);
+    customOptions = {
+      price: finalVndPrice,
+      originalPrice: currentProduct.price,
+      isUpgrade: true,
+      upgradeFromRank: userRankStatus.current_rank || ('Cấp ' + userRankTier),
+      upgradeDiscount: upgradeDiscount
+    };
+  }
+
   if (api.cart && typeof api.cart.addItem === 'function') {
-    api.cart.addItem(currentProduct, qty);
+    api.cart.addItem(currentProduct, customOptions.isUpgrade ? 1 : qty, customOptions);
     if (window.SoundFX) SoundFX.playSuccess();
+    const priceMsg = customOptions.isUpgrade ? ` (${customOptions.price.toLocaleString('vi-VN')}đ - Giá nâng cấp)` : '';
     if (typeof api.showToast === 'function') {
-      api.showToast(`Đã thêm ${qty}x ${currentProduct.name} vào giỏ hàng!`, 'success');
+      api.showToast(`Đã thêm ${currentProduct.name} vào giỏ hàng!${priceMsg}`, 'success');
     } else {
-      alert(`Đã thêm ${qty}x ${currentProduct.name} vào giỏ hàng!`);
+      alert(`Đã thêm ${currentProduct.name} vào giỏ hàng!${priceMsg}`);
     }
   }
 }

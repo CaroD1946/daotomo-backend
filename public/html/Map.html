@@ -223,6 +223,47 @@
       font-weight: 800;
       color: #ffffff;
     }
+
+    @media (max-width: 640px) {
+      .map-hero {
+        padding: calc(var(--nav-h) + 1.5rem) 1rem 1.5rem;
+      }
+      .map-section {
+        padding: 1.5rem 1rem 90px; /* Safe padding so FAB never overlaps landmarks or coordinates */
+      }
+      .map-frame-wrap {
+        min-height: 280px;
+        aspect-ratio: 4/3;
+      }
+      .map-overlay {
+        padding: 1.25rem 0.75rem;
+      }
+      .map-overlay .icon {
+        font-size: 2.25rem;
+        margin-bottom: 0.4rem;
+      }
+      .map-overlay h3 {
+        font-size: 1.15rem;
+      }
+      .map-overlay p {
+        font-size: 0.82rem;
+        line-height: 1.45;
+        margin-bottom: 0.75rem;
+      }
+      .map-overlay .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.85rem;
+      }
+      .landmarks-section {
+        margin-top: 2rem;
+      }
+      .landmarks-head h2 {
+        font-size: 1.2rem;
+      }
+      .landmark-slide-card {
+        padding: 1.25rem;
+      }
+    }
   </style>
 </head>
 <body>
