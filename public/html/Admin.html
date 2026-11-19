@@ -2220,7 +2220,7 @@ function renderCoupons(list) {
         <td>
           <div style="display:flex;gap:0.45rem;align-items:center;flex-wrap:nowrap">
             <button class="btn btn-ghost" onclick="showCouponUsages(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.4rem 0.75rem;font-size:0.78rem;display:inline-flex;align-items:center;gap:5px;background:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.28);color:#a5b4fc;border-radius:6px;white-space:nowrap" title="Xem danh sách người đã dùng mã này">
-              👥 Ai đã dùng (${c.usages_count || c.used_count || 0})
+              👥 Người dùng (${c.usages_count || c.used_count || 0})
             </button>
             <button class="btn btn-danger" onclick="deleteCoupon(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.4rem 0.65rem;font-size:0.78rem;border-radius:6px" title="Xóa mã coupon này">
               🗑️

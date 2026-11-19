@@ -150,6 +150,8 @@
     }
 
     .profile-header-body {
+      position: relative;
+      z-index: 5;
       padding: 0 1.75rem 1.5rem;
       display: flex;
       align-items: flex-end;
@@ -159,13 +161,16 @@
     }
     .profile-header-main {
       display: flex;
-      align-items: flex-end;
+      align-items: flex-start;
       gap: 1.35rem;
       flex-wrap: wrap;
-      margin-top: -52px;
+      position: relative;
+      z-index: 6;
+      margin-top: 0;
     }
     .profile-avatar-frame {
       position: relative;
+      margin-top: -52px;
       width: 104px;
       height: 104px;
       flex-shrink: 0;
@@ -176,6 +181,7 @@
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
       cursor: pointer;
       transition: transform 0.2s ease, border-color 0.2s ease;
+      z-index: 7;
     }
     .profile-avatar-frame:hover {
       transform: scale(1.03);
@@ -216,6 +222,9 @@
       display: flex;
       flex-direction: column;
       gap: 0.35rem;
+      padding-top: 0.5rem;
+      position: relative;
+      z-index: 6;
     }
     .profile-name-row {
       display: flex;
@@ -517,11 +526,35 @@
         padding: 0 1.25rem 1.4rem;
       }
       .profile-header-main {
-        align-items: center;
+        align-items: flex-start;
       }
       .profile-header-actions {
         width: 100%;
         justify-content: flex-start;
+      }
+    }
+    @media (max-width: 600px) {
+      .profile-header-main {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        width: 100%;
+      }
+      .profile-avatar-frame {
+        margin: -52px auto 0;
+      }
+      .profile-info-block {
+        align-items: center;
+        padding-top: 0.35rem;
+      }
+      .profile-name-row {
+        justify-content: center;
+      }
+      .profile-meta-chips {
+        justify-content: center;
+      }
+      .profile-header-actions {
+        justify-content: center;
       }
     }
 
