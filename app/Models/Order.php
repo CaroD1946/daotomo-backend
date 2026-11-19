@@ -21,6 +21,9 @@ class Order extends Model
         'status',
         'payment_proof',
         'transfer_content',
+        'coupon_code',
+        'discount_amount',
+        'original_amount',
         'idempotency_key',
         'admin_note',
         'status_history',
@@ -28,6 +31,8 @@ class Order extends Model
 
     protected $casts = [
         'total_amount' => 'float',
+        'discount_amount' => 'float',
+        'original_amount' => 'float',
         'status_history' => 'array',
     ];
 

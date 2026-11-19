@@ -19,6 +19,8 @@ class CreateOrderRequest extends BaseApiRequest
             'note' => 'nullable|string|max:500',
             'paymentMethod' => 'nullable|string|max:50',
             'idempotencyKey' => 'nullable|string|max:100',
+            'couponCode' => 'nullable|string|max:50',
+            'coupon_code' => 'nullable|string|max:50',
         ];
     }
 

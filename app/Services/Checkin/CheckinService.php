@@ -56,6 +56,7 @@ class CheckinService
         ]);
 
         $user->increment('coins', $coinsAwarded);
+        $user->increment('lucky_spins', 2);
 
         // Tự động đẩy phần thưởng 10 Chìa Khóa Rare và Xu vào hàng đợi thực thi in-game
         $targetIgn = trim((string) ($user->minecraft_username ?: $user->username));
@@ -79,13 +80,16 @@ class CheckinService
             ]);
         }
 
+        $freshUser = $user->fresh();
         $payload = [
             'success' => true,
-            'message' => "Điểm danh ngày {$streak} thành công! Nhận được {$coinsAwarded} xu Đảo và 10 Chìa Khóa Hiếm (Rare Key) in-game! 🏝️🎁",
+            'message' => "Điểm danh ngày {$streak} thành công! Nhận được {$coinsAwarded} xu Đảo, 10 Chìa Khóa Hiếm và +2 Lượt Quay May Mắn! 🏝️🎁",
             'streak' => $streak,
             'coinsAwarded' => $coinsAwarded,
             'rareKeysAwarded' => 10,
-            'userCoins' => (int) $user->fresh()->coins,
+            'luckySpinsAwarded' => 2,
+            'userCoins' => (int) $freshUser->coins,
+            'luckySpins' => (int) ($freshUser->lucky_spins ?? 0),
             'checkedToday' => true,
             'checkedInToday' => true,
         ];
@@ -132,6 +136,7 @@ class CheckinService
             'dates' => $dates,
             'checkins' => $checkins,
             'coins' => (int) $user->coins,
+            'lucky_spins' => (int) ($user->lucky_spins ?? 0),
         ];
 
         return [

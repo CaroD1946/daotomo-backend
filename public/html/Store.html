@@ -249,6 +249,127 @@
 
     .state-box { text-align: center; padding: 4rem 2rem; color: var(--text-muted); grid-column: 1/-1; }
 
+    /* Floating Cart Button & Drawer */
+    .floating-cart-btn {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 998;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #7c3aed, #22d3ee);
+      border: 2px solid rgba(255,255,255,0.25);
+      color: #fff;
+      font-size: 1.4rem;
+      cursor: pointer;
+      box-shadow: 0 8px 25px rgba(124,58,237,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .floating-cart-btn:hover {
+      transform: scale(1.08) translateY(-2px);
+      box-shadow: 0 12px 32px rgba(34,211,238,0.55);
+    }
+    .floating-cart-btn .cart-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      background: #ef4444;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: 999px;
+      border: 2px solid #090b14;
+      min-width: 20px;
+      text-align: center;
+    }
+    .cart-drawer-overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.65);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
+      display: flex; justify-content: flex-end;
+    }
+    .cart-drawer-overlay.open {
+      opacity: 1; pointer-events: auto;
+    }
+    .cart-drawer {
+      width: 100%; max-width: 440px;
+      height: 100%;
+      background: #0f1322;
+      border-left: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: -10px 0 30px rgba(0,0,0,0.7);
+    }
+    .cart-drawer-overlay.open .cart-drawer {
+      transform: translateX(0);
+    }
+    .cart-drawer-header {
+      padding: 1.25rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255,255,255,0.02);
+    }
+    .cart-drawer-header h3 {
+      font-size: 1.15rem; font-weight: 800; color: #fff;
+      font-family: var(--font-display);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .cart-close-btn {
+      background: none; border: none; color: #94a3b8;
+      font-size: 1.6rem; cursor: pointer; padding: 0.2rem 0.5rem;
+      line-height: 1; transition: color 0.2s;
+    }
+    .cart-close-btn:hover { color: #fff; }
+    .cart-drawer-body {
+      flex: 1; overflow-y: auto;
+      padding: 1rem 1.25rem;
+      display: flex; flex-direction: column; gap: 0.75rem;
+    }
+    .cart-drawer-footer {
+      padding: 1.25rem 1.5rem;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.3);
+    }
+    .cart-item {
+      display: flex; align-items: center; gap: 0.85rem;
+      padding: 0.75rem 0.85rem;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius-sm);
+    }
+    .cart-item-img {
+      width: 48px; height: 48px; border-radius: 8px; object-fit: cover;
+      background: rgba(255,255,255,0.05);
+    }
+    .cart-item-info { flex: 1; min-width: 0; }
+    .cart-item-name { font-size: 0.88rem; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cart-item-price { font-size: 0.85rem; color: var(--accent); font-family: var(--font-mono); font-weight: 700; }
+    .cart-item-qty { display: flex; align-items: center; gap: 0.35rem; }
+    .cart-qty-btn {
+      width: 24px; height: 24px; border-radius: 4px;
+      border: 1px solid var(--border); background: rgba(255,255,255,0.06);
+      color: #fff; font-size: 0.85rem; cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+    }
+    .cart-item-del {
+      background: none; border: none; color: #ef4444; cursor: pointer;
+      padding: 4px; font-size: 1rem; opacity: 0.75; transition: opacity 0.2s;
+    }
+    .cart-item-del:hover { opacity: 1; }
+    .cart-total-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.88rem; color: var(--text-muted); margin-bottom: 0.35rem;
+    }
+
     /* Modal */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
@@ -449,6 +570,49 @@
   </div>
 </main>
 
+<!-- Floating Cart Button -->
+<button id="floating-cart-btn" class="floating-cart-btn" onclick="openCartDrawer()" title="Xem giỏ hàng">
+  🛒 <span class="cart-badge" id="floating-cart-count">0</span>
+</button>
+
+<!-- Cart Drawer -->
+<div class="cart-drawer-overlay" id="cart-drawer-overlay" onclick="closeCartDrawer(event)">
+  <div class="cart-drawer" onclick="event.stopPropagation()">
+    <div class="cart-drawer-header">
+      <h3>🛒 Giỏ Hàng Của Bạn (<span id="cart-drawer-count">0</span>)</h3>
+      <button class="cart-close-btn" onclick="closeCartDrawer()">&times;</button>
+    </div>
+    <div class="cart-drawer-body" id="cart-drawer-body">
+      <!-- Items dynamically populated -->
+    </div>
+    <div class="cart-drawer-footer" id="cart-drawer-footer">
+      <div id="cart-mc-status" style="margin-bottom:0.75rem"></div>
+      <div style="margin-bottom:0.75rem">
+        <div style="display:flex;gap:0.4rem">
+          <input type="text" id="cart-coupon-input" class="input" placeholder="Mã giảm giá (VD: OPEN2026)" style="flex:1;font-size:0.82rem;padding:0.5rem;text-transform:uppercase;font-family:var(--font-mono)">
+          <button type="button" class="btn btn-ghost" onclick="applyCartCoupon()" style="padding:0.5rem 0.8rem;font-size:0.8rem;white-space:nowrap">Áp dụng</button>
+        </div>
+        <div id="cart-coupon-msg" style="font-size:0.78rem;margin-top:0.25rem"></div>
+      </div>
+      <div class="cart-total-row">
+        <span>Tạm tính:</span>
+        <strong id="cart-subtotal-val" style="color:#fff">0đ</strong>
+      </div>
+      <div class="cart-total-row" id="cart-discount-row" style="display:none;color:#34d399">
+        <span>Giảm giá coupon:</span>
+        <strong id="cart-discount-val">-0đ</strong>
+      </div>
+      <div class="cart-total-row final" style="font-size:1.15rem;font-weight:800;margin-top:0.35rem;padding-top:0.45rem;border-top:1px dashed var(--border)">
+        <span>Tổng thanh toán:</span>
+        <strong id="cart-total-val" style="color:var(--accent);font-family:var(--font-mono)">0đ</strong>
+      </div>
+      <button class="btn btn-primary btn-full" id="btn-cart-checkout" onclick="checkoutCart()" style="margin-top:0.85rem;padding:0.8rem">
+        ⚡ Thanh Toán Giỏ Hàng
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- Purchase Modal -->
 <div class="modal-overlay" id="modal">
   <div class="modal">
@@ -463,6 +627,14 @@
           <span style="color:var(--text-muted)">Đơn giá niêm yết:</span>
           <strong id="m-unit-price" style="color:var(--accent);font-family:var(--font-mono);font-size:1.05rem">0đ</strong>
         </div>
+
+        <div id="m-upgrade-box" style="display:none;background:rgba(124,58,237,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:8px;padding:0.6rem 0.85rem;margin-bottom:0.75rem">
+          <div style="font-size:0.78rem;font-weight:700;color:#c084fc;margin-bottom:0.25rem">⚡ ƯU ĐÃI NÂNG CẤP RANK:</div>
+          <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#34d399">
+            <span id="m-upgrade-rank-name">Đã sở hữu Rank:</span>
+            <span id="m-upgrade-deduct">-0đ</span>
+          </div>
+        </div>
         
         <div style="margin:0.85rem 0">
           <label style="font-size:0.82rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:0.4rem">Chọn số lượng đặt mua:</label>
@@ -473,9 +645,33 @@
           </div>
         </div>
 
-        <div class="form-group" style="margin-bottom:0.75rem">
-          <label style="font-size:0.82rem;font-weight:600;color:var(--text-muted)">Tên tài khoản Minecraft nhận đồ:</label>
-          <input class="input" type="text" id="m-mc" placeholder="Ví dụ: StevePro99" style="font-size:0.9rem;padding:0.7rem">
+        <!-- Coupon code input -->
+        <div style="margin:0.75rem 0">
+          <label style="font-size:0.82rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:0.35rem">Mã giảm giá (Coupon):</label>
+          <div style="display:flex;gap:0.5rem">
+            <input class="input" type="text" id="m-coupon" placeholder="Nhập mã voucher (VD: OPEN2026)" style="flex:1;font-size:0.85rem;padding:0.6rem;text-transform:uppercase;font-family:var(--font-mono)">
+            <button type="button" class="btn btn-ghost" onclick="checkCouponStore()" style="padding:0.6rem 0.9rem;font-size:0.8rem;white-space:nowrap">Áp dụng</button>
+          </div>
+          <div id="m-coupon-msg" style="font-size:0.78rem;margin-top:0.3rem"></div>
+        </div>
+
+        <!-- Minecraft Link Status Box -->
+        <div id="m-mc-container" style="margin-bottom:0.75rem">
+          <div id="m-mc-linked-box" style="display:none;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:0.6rem 0.85rem;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <span style="font-size:0.76rem;color:#94a3b8;display:block">Tài khoản Minecraft nhận đồ:</span>
+              <strong id="m-mc-linked-text" style="color:#34d399;font-family:var(--font-mono)">🎮 —</strong>
+            </div>
+            <span style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.72rem;padding:2px 7px;border-radius:999px;font-weight:700">✅ Đã liên kết</span>
+          </div>
+
+          <div id="m-mc-unlinked-box" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:0.65rem 0.85rem">
+            <div style="color:#fbbf24;font-size:0.82rem;font-weight:700;margin-bottom:0.25rem">⚠️ Chưa liên kết tài khoản Minecraft</div>
+            <p style="color:#cbd5e1;font-size:0.78rem;margin:0 0 0.5rem">Bạn cần liên kết tài khoản để hệ thống tự động giao đồ in-game.</p>
+            <a href="/html/Account.html?redirect=/html/Store.html" class="btn" style="display:inline-block;padding:0.35rem 0.8rem;font-size:0.78rem;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:4px;text-decoration:none">
+              🔗 Liên kết tài khoản ngay →
+            </a>
+          </div>
         </div>
 
         <div class="form-group" style="margin-bottom:0">
@@ -675,6 +871,10 @@ function render(list) {
     'rank-god': 5, 'rank_god': 5
   };
 
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  const userCurTier = userRankStatus.current_tier || 0;
+  const userCurPrice = rankPrices[userCurTier] || 0;
+
   grid.innerHTML = list.map(p => {
     const safeName = api.escapeHtml(p.name);
     const safeDesc = api.escapeHtml(p.description || '');
@@ -684,22 +884,38 @@ function render(list) {
     const pTier = rankTierMap[p.slug] || rankTierMap[p.game_reward] || 0;
     let rankBadgeHtml = '';
     let actionBtnHtml = `<button class="btn-buy" onclick="openBuyModal('${safeId}', event)">🛒 Mua ngay</button>`;
+    let priceHtml = `<div class="price">${Number(p.price || 0).toLocaleString('vi-VN')}đ</div>`;
+    const isOwnedOrLower = (pTier > 0 && userCurTier >= pTier);
 
-    if (pTier > 0 && userRankStatus.current_tier > 0) {
-      if (userRankStatus.current_tier >= pTier) {
-        const isExact = (userRankStatus.current_tier === pTier);
+    if (pTier > 0 && userCurTier > 0) {
+      if (isOwnedOrLower) {
+        const isExact = (userCurTier === pTier);
         rankBadgeHtml = `<span class="rank-tier-hint ${isExact ? 'owned' : ''}">🔒 ${isExact ? 'Đã sở hữu' : 'Cấp nhỏ hơn Rank đang có'}</span>`;
         actionBtnHtml = `<button class="btn-buy" disabled style="opacity:0.55;cursor:not-allowed;background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.12)">🔒 ${isExact ? 'Đã sở hữu' : 'Đã có Rank cao hơn'}</button>`;
       } else {
+        const upPrice = Math.max(0, (p.price || 0) - userCurPrice);
+        priceHtml = `
+          <div class="price" style="display:flex;align-items:baseline;gap:0.4rem;flex-wrap:wrap">
+            <span style="color:#22d3ee;font-size:1.15rem">${upPrice.toLocaleString('vi-VN')}đ</span>
+            <span style="font-size:0.75rem;color:#94a3b8;text-decoration:line-through">${Number(p.price || 0).toLocaleString('vi-VN')}đ</span>
+            <span style="font-size:0.7rem;background:rgba(124,58,237,0.25);color:#c084fc;padding:1px 5px;border-radius:4px;font-weight:700">Nâng cấp</span>
+          </div>
+        `;
         actionBtnHtml = `<button class="btn-buy" onclick="openBuyModal('${safeId}', event)" style="background:linear-gradient(135deg,#7c3aed,#22d3ee);color:#fff;font-weight:700">⚡ Nâng cấp Rank</button>`;
       }
     } else if (p.category === 'coin') {
       actionBtnHtml = `<button class="btn-buy" onclick="openBuyModal('${safeId}', event)" style="background:linear-gradient(135deg,#f59e0b,#fbbf24);color:#0f172a;font-weight:800">⚡ Nạp Xu</button>`;
     }
 
+    const cartBtnHtml = !isOwnedOrLower ? `
+      <button class="btn-cart-add" onclick="handleAddToCart('${safeId}', event)" title="Thêm vào giỏ hàng" style="background:rgba(255,255,255,0.07);border:1px solid var(--border);color:#fff;padding:0.45rem 0.65rem;border-radius:var(--radius-sm);cursor:pointer;font-size:0.9rem;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s">
+        🛒+
+      </button>
+    ` : '';
+
     return `
     <div class="product-card tilt-card" style="position:relative">
-      ${p.featured ? '<span class="badge badge-gold" style="position:absolute;top:0.6rem;left:0.6rem;z-index:2">⭐ Nổi bật</span>' : ''}
+      ${(p.featured && !isOwnedOrLower) ? '<span class="badge badge-gold" style="position:absolute;top:0.6rem;left:0.6rem;z-index:2">⭐ Nổi bật</span>' : ''}
       ${rankBadgeHtml}
       <div class="img-wrap" onclick="goDetail('${safeId}')">
         <img src="${safeImg}" alt="${safeName}" loading="lazy"
@@ -708,9 +924,10 @@ function render(list) {
       <div class="info">
         <div class="name">${safeName}</div>
         <div class="desc">${safeDesc}</div>
-        <div class="price">${Number(p.price || 0).toLocaleString('vi-VN')}đ</div>
+        ${priceHtml}
         <div class="card-actions">
           <button class="btn-detail" onclick="goDetail('${safeId}')">Chi tiết</button>
+          ${cartBtnHtml}
           ${actionBtnHtml}
         </div>
       </div>
@@ -719,6 +936,7 @@ function render(list) {
   }).join('');
 
   if (window.init3DTilt) window.init3DTilt();
+  updateFloatingCartBadge();
 }
 
 function goDetail(id) {
@@ -738,6 +956,278 @@ document.querySelectorAll('.filter-btn').forEach(btn => {
   });
 });
 
+/* ── Cart Management ── */
+function updateFloatingCartBadge() {
+  const count = (api.cart && api.cart.getCount()) || 0;
+  const badge = document.getElementById('floating-cart-count');
+  if (badge) badge.textContent = count;
+}
+
+window.addEventListener('daotomo:cart-updated', updateFloatingCartBadge);
+
+function handleAddToCart(productId, evt) {
+  if (evt) evt.stopPropagation();
+  const prod = products.find(p => p._id === productId);
+  if (!prod) return;
+
+  api.cart.addItem(prod, 1);
+  if (window.SoundFX) SoundFX.playSuccess();
+  if (typeof api.showToast === 'function') {
+    api.showToast(`Đã thêm "${prod.name}" vào giỏ hàng!`, 'success');
+  }
+}
+
+function openCartDrawer() {
+  renderCartDrawer();
+  document.getElementById('cart-drawer-overlay').classList.add('open');
+  if (window.SoundFX) SoundFX.playClick();
+}
+
+function closeCartDrawer(evt) {
+  if (evt && evt.target !== evt.currentTarget) return;
+  document.getElementById('cart-drawer-overlay').classList.remove('open');
+}
+
+let cartAppliedCoupon = null;
+
+async function applyCartCoupon() {
+  const code = (document.getElementById('cart-coupon-input')?.value || '').trim().toUpperCase();
+  const msgEl = document.getElementById('cart-coupon-msg');
+  if (!code) {
+    if (msgEl) msgEl.innerHTML = '<span style="color:#ef4444">Vui lòng nhập mã!</span>';
+    return;
+  }
+
+  const subtotal = api.cart.getTotal();
+  if (subtotal <= 0) {
+    if (msgEl) msgEl.innerHTML = '<span style="color:#ef4444">Giỏ hàng đang trống!</span>';
+    return;
+  }
+
+  try {
+    const res = await api.validateCoupon(code, subtotal);
+    if (res && res.valid) {
+      cartAppliedCoupon = res;
+      if (msgEl) msgEl.innerHTML = `<span style="color:#34d399;font-weight:700">✅ Giảm ${Number(res.discount_amount).toLocaleString('vi-VN')}đ</span>`;
+      renderCartDrawerTotals();
+      if (typeof api.showToast === 'function') api.showToast(`Áp dụng mã ${res.code} thành công!`, 'success');
+      if (window.SoundFX) SoundFX.playSuccess();
+    }
+  } catch (err) {
+    cartAppliedCoupon = null;
+    if (msgEl) msgEl.innerHTML = `<span style="color:#ef4444">❌ ${api.escapeHtml(err.message || 'Mã không hợp lệ')}</span>`;
+    renderCartDrawerTotals();
+    if (window.SoundFX) SoundFX.playError();
+  }
+}
+
+function renderCartDrawerTotals() {
+  const subtotal = api.cart.getTotal();
+  const subtotalEl = document.getElementById('cart-subtotal-val');
+  const discountRow = document.getElementById('cart-discount-row');
+  const discountVal = document.getElementById('cart-discount-val');
+  const totalEl = document.getElementById('cart-total-val');
+
+  if (subtotalEl) subtotalEl.textContent = subtotal.toLocaleString('vi-VN') + 'đ';
+
+  let discount = 0;
+  if (cartAppliedCoupon && cartAppliedCoupon.discount_amount) {
+    discount = Math.min(subtotal, cartAppliedCoupon.discount_amount);
+    if (discountRow) discountRow.style.display = 'flex';
+    if (discountVal) discountVal.textContent = '-' + discount.toLocaleString('vi-VN') + 'đ';
+  } else {
+    if (discountRow) discountRow.style.display = 'none';
+  }
+
+  const finalTotal = Math.max(0, subtotal - discount);
+  if (totalEl) totalEl.textContent = finalTotal.toLocaleString('vi-VN') + 'đ';
+}
+
+function renderCartDrawer() {
+  const items = api.cart.getItems();
+  const countEl = document.getElementById('cart-drawer-count');
+  if (countEl) countEl.textContent = api.cart.getCount();
+
+  const bodyEl = document.getElementById('cart-drawer-body');
+  const statusEl = document.getElementById('cart-mc-status');
+  const u = api.getUser();
+  const linkedMc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+
+  if (statusEl) {
+    if (linkedMc) {
+      statusEl.innerHTML = `
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:8px;padding:0.5rem 0.75rem;display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:0.78rem;color:#94a3b8">Nhận hàng tại nick:</span>
+          <strong style="color:#34d399;font-family:var(--font-mono);font-size:0.9rem">🎮 ${api.escapeHtml(linkedMc)}</strong>
+        </div>`;
+    } else {
+      statusEl.innerHTML = `
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:0.6rem 0.75rem">
+          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700">⚠️ Chưa liên kết Minecraft</div>
+          <p style="color:#cbd5e1;font-size:0.75rem;margin:2px 0 6px">Cần liên kết để giao đồ tự động.</p>
+          <a href="/html/Account.html?redirect=/html/Store.html" style="color:var(--lagoon);font-size:0.75rem;font-weight:700;text-decoration:underline">Liên kết ngay →</a>
+        </div>`;
+    }
+  }
+
+  if (!items.length) {
+    bodyEl.innerHTML = `
+      <div style="text-align:center;padding:3rem 1rem;color:var(--text-muted)">
+        <div style="font-size:2.5rem;margin-bottom:0.5rem">🛒</div>
+        <p style="font-size:0.95rem;color:#fff;font-weight:700;margin-bottom:0.3rem">Giỏ hàng của bạn đang trống</p>
+        <p style="font-size:0.82rem">Hãy dạo xem cửa hàng và chọn các vật phẩm ưng ý nhé!</p>
+      </div>`;
+    renderCartDrawerTotals();
+    const checkoutBtn = document.getElementById('btn-cart-checkout');
+    if (checkoutBtn) checkoutBtn.disabled = true;
+    return;
+  }
+
+  const checkoutBtn = document.getElementById('btn-cart-checkout');
+  if (checkoutBtn) checkoutBtn.disabled = (!linkedMc && !isGuestOrAdmin);
+
+  bodyEl.innerHTML = items.map(it => `
+    <div class="cart-item">
+      <img src="${api.escapeHtml(api.safeUrl(it.image, '/img/logo.jpg'))}" class="cart-item-img" alt="${api.escapeHtml(it.name)}">
+      <div class="cart-item-info">
+        <div class="cart-item-name">${api.escapeHtml(it.name)}</div>
+        <div class="cart-item-price">${Number(it.price || 0).toLocaleString('vi-VN')}đ</div>
+      </div>
+      <div class="cart-item-qty">
+        <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', -1)">-</button>
+        <span style="font-family:var(--font-mono);font-size:0.85rem;font-weight:700;padding:0 4px">${it.quantity}</span>
+        <button class="cart-qty-btn" onclick="updateCartItemQty('${it.productId}', 1)">+</button>
+      </div>
+      <button class="cart-item-del" onclick="removeCartItem('${it.productId}')" title="Xóa">✕</button>
+    </div>
+  `).join('');
+
+  renderCartDrawerTotals();
+}
+
+function updateCartItemQty(productId, delta) {
+  const items = api.cart.getItems();
+  const it = items.find(i => i.productId === productId);
+  if (!it) return;
+  const newQty = it.quantity + delta;
+  api.cart.updateQty(productId, newQty);
+  renderCartDrawer();
+  if (window.SoundFX) SoundFX.playClick();
+}
+
+function removeCartItem(productId) {
+  api.cart.removeItem(productId);
+  renderCartDrawer();
+  if (window.SoundFX) SoundFX.playClick();
+}
+
+async function checkoutCart() {
+  const items = api.cart.getItems();
+  if (!items.length) return;
+
+  const u = api.getUser();
+  const linkedMc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+
+  if (!linkedMc && !isGuestOrAdmin) {
+    if (typeof api.showToast === 'function') api.showToast('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!', 'error');
+    else alert('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!');
+    location.href = '/html/Account.html?redirect=/html/Store.html';
+    return;
+  }
+
+  const btn = document.getElementById('btn-cart-checkout');
+  btn.disabled = true;
+  btn.textContent = 'Đang khởi tạo đơn hàng...';
+
+  try {
+    const orderItems = items.map(it => ({ productId: it.productId, quantity: it.quantity }));
+    const couponCode = cartAppliedCoupon ? cartAppliedCoupon.code : (document.getElementById('cart-coupon-input')?.value.trim() || '');
+
+    const res = await api.createOrder(orderItems, linkedMc, 'Mua giỏ hàng Đảo Tò Mò', 'qr', '', couponCode);
+    const order = (res && (res.order || res.data)) || res;
+    if (!order) throw new Error('Không nhận được thông tin đơn hàng từ máy chủ.');
+
+    // Clear cart on successful order creation
+    api.cart.clear();
+    closeCartDrawer();
+
+    // Show payment modal with order details
+    const code = order.orderCode || order.order_code || '#' + (order._id || order.id || '').toString().slice(-8).toUpperCase();
+    const transfer = order.transferContent || order.transfer_content || order.paymentDetails?.transferContent || code;
+    const total = order.total || order.totalAmount || order.total_amount || 0;
+
+    document.getElementById('m-res-total').textContent = Number(total).toLocaleString('vi-VN') + 'đ';
+    document.getElementById('m-res-code').textContent = 'Mã đơn: ' + code;
+    document.getElementById('m-res-transfer').textContent = transfer;
+    document.getElementById('m-view-order-link').href = `/html/Account.html?orderId=${order._id || order.id}`;
+
+    const bankDetails = order.paymentDetails || {};
+    const bankNameEl = document.getElementById('m-bank-name');
+    const accNameEl  = document.getElementById('m-acc-name');
+    const accNumEl   = document.getElementById('m-acc-number');
+    if (bankNameEl) bankNameEl.textContent = bankDetails.bankName || 'MBBank';
+    if (accNameEl)  accNameEl.textContent  = bankDetails.accountName || 'Admin Đảo Tò Mò';
+    if (accNumEl)   accNumEl.textContent   = bankDetails.accountNumber || '—';
+
+    const vietqrUrl = order.vietqrUrl || order.sepayQrUrl || bankDetails.qrUrl || '/img/logo.jpg';
+    const imgEl = document.getElementById('m-vietqr-img');
+    if (imgEl) {
+      imgEl.src = vietqrUrl;
+      imgEl.onerror = () => { imgEl.src = order.qrOnlyUrl || order.sepayQrUrl || '/img/logo.jpg'; };
+    }
+
+    startCountdown();
+    startOrderPolling(code);
+
+    document.getElementById('modal-step-confirm').style.display = 'none';
+    document.getElementById('modal-step-paid').style.display = 'block';
+    document.getElementById('modal').classList.add('open');
+
+    if (window.ConfettiFX) ConfettiFX.fire();
+    if (window.SoundFX) SoundFX.playSuccess();
+  } catch (err) {
+    if (typeof api.showToast === 'function') api.showToast(err.message, 'error');
+    else alert('❌ ' + err.message);
+    if (window.SoundFX) SoundFX.playError();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Thanh Toán Giỏ Hàng';
+  }
+}
+
+/* ── Buy Modal (Single Item) ── */
+let storeAppliedCoupon = null;
+
+async function checkCouponStore() {
+  const code = (document.getElementById('m-coupon')?.value || '').trim().toUpperCase();
+  const msgEl = document.getElementById('m-coupon-msg');
+  if (!code) {
+    if (msgEl) msgEl.innerHTML = '<span style="color:#ef4444">Vui lòng nhập mã!</span>';
+    return;
+  }
+
+  const qty = Math.max(1, parseInt(document.getElementById('m-qty')?.value, 10) || 1);
+  const total = selectedProduct ? (selectedProduct.price * qty) : 0;
+
+  try {
+    const res = await api.validateCoupon(code, total);
+    if (res && res.valid) {
+      storeAppliedCoupon = res;
+      if (msgEl) msgEl.innerHTML = `<span style="color:#34d399;font-weight:700">✅ Giảm ${Number(res.discount_amount).toLocaleString('vi-VN')}đ</span>`;
+      updateModalTotal();
+      if (typeof api.showToast === 'function') api.showToast(`Áp dụng mã ${res.code} thành công!`, 'success');
+      if (window.SoundFX) SoundFX.playSuccess();
+    }
+  } catch (err) {
+    storeAppliedCoupon = null;
+    if (msgEl) msgEl.innerHTML = `<span style="color:#ef4444">❌ ${api.escapeHtml(err.message || 'Mã không hợp lệ')}</span>`;
+    updateModalTotal();
+    if (window.SoundFX) SoundFX.playError();
+  }
+}
+
 function openBuyModal(productId, evt) {
   if (evt) evt.stopPropagation();
   selectedProduct = products.find(p => p._id === productId);
@@ -750,30 +1240,68 @@ function openBuyModal(productId, evt) {
     'rank-overlord': 4, 'rank_overlord': 4,
     'rank-god': 5, 'rank_god': 5
   };
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  const userCurTier = userRankStatus.current_tier || 0;
   const pTier = rankTierMap[selectedProduct.slug] || rankTierMap[selectedProduct.game_reward] || 0;
-  if (pTier > 0 && userRankStatus.current_tier >= pTier) {
-    const isExact = (userRankStatus.current_tier === pTier);
-    if (typeof api.showToast === 'function') {
-      api.showToast(isExact ? 'Bạn đã sở hữu Rank này rồi!' : 'Bạn đã sở hữu Rank cấp cao hơn, không thể mua rank nhỏ hơn!', 'error');
-    } else {
-      alert('Bạn đã sở hữu Rank này hoặc Rank cấp cao hơn!');
-    }
+
+  if (pTier > 0 && userCurTier >= pTier) {
+    const isExact = (userCurTier === pTier);
+    const msg = isExact ? 'Bạn đã sở hữu Rank này rồi!' : 'Bạn đã sở hữu Rank cấp cao hơn, không thể mua rank nhỏ hơn!';
+    if (typeof api.showToast === 'function') api.showToast(msg, 'error');
+    else alert(msg);
     return;
   }
 
   const u = api.getUser();
-  const isLogged = api.isLoggedIn() && !!u;
+  const linkedMc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
 
   document.getElementById('m-prod-name').textContent = selectedProduct.name;
   document.getElementById('m-unit-price').textContent = selectedProduct.price.toLocaleString('vi-VN') + 'đ';
   document.getElementById('m-qty').value = 1;
-  document.getElementById('m-mc').value = (u && (u.minecraft_username || u.minecraftUsername)) || '';
   document.getElementById('m-client-note').value = '';
   document.getElementById('m-error-msg').innerHTML = '';
+  document.getElementById('m-coupon').value = '';
+  document.getElementById('m-coupon-msg').innerHTML = '';
+  storeAppliedCoupon = null;
+
+  // Rank upgrade deduction line in modal
+  const upBox = document.getElementById('m-upgrade-box');
+  if (pTier > 0 && userCurTier > 0 && userCurTier < pTier) {
+    const curPrice = rankPrices[userCurTier] || 0;
+    const deduct = Math.min(selectedProduct.price, curPrice);
+    document.getElementById('m-upgrade-rank-name').textContent = `Đã có Rank ${userRankStatus.current_rank || 'Cấp ' + userCurTier}:`;
+    document.getElementById('m-upgrade-deduct').textContent = `-${deduct.toLocaleString('vi-VN')}đ`;
+    if (upBox) upBox.style.display = 'block';
+  } else {
+    if (upBox) upBox.style.display = 'none';
+  }
+
+  // Minecraft link display
+  const linkedBox = document.getElementById('m-mc-linked-box');
+  const unlinkedBox = document.getElementById('m-mc-unlinked-box');
+  const submitBtn = document.getElementById('m-submit-btn');
+
+  if (linkedMc) {
+    if (linkedBox) {
+      linkedBox.style.display = 'flex';
+      document.getElementById('m-mc-linked-text').textContent = '🎮 ' + linkedMc;
+    }
+    if (unlinkedBox) unlinkedBox.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = false;
+  } else if (!isGuestOrAdmin) {
+    if (linkedBox) linkedBox.style.display = 'none';
+    if (unlinkedBox) unlinkedBox.style.display = 'block';
+    if (submitBtn) submitBtn.disabled = true;
+  } else {
+    if (linkedBox) linkedBox.style.display = 'none';
+    if (unlinkedBox) unlinkedBox.style.display = 'none';
+    if (submitBtn) submitBtn.disabled = false;
+  }
 
   const userTip = document.getElementById('m-user-status-tip');
   if (userTip) {
-    if (isLogged) {
+    if (u) {
       userTip.innerHTML = `👤 Tài khoản: <strong style="color:var(--lagoon)">${api.escapeHtml(u.username)}</strong> <span style="color:var(--text-muted);font-size:0.75rem">(Đơn sẽ lưu vào hồ sơ)</span>`;
     } else {
       userTip.innerHTML = `⚡ <em>Mua hàng nhanh với tư cách Khách. (Hoặc <a href="/html/Account.html?redirect=/html/Store.html" style="color:var(--lagoon);font-weight:600;text-decoration:underline">Đăng nhập</a> để tích xu)</em>`;
@@ -800,7 +1328,23 @@ function changeQty(delta) {
 function updateModalTotal() {
   if (!selectedProduct) return;
   const qty = Math.max(1, parseInt(document.getElementById('m-qty').value, 10) || 1);
-  const total = selectedProduct.price * qty;
+
+  const rankTierMap = { 'rank-knight': 1, 'rank-legend': 2, 'rank-master': 3, 'rank-overlord': 4, 'rank-god': 5 };
+  const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+  const pTier = rankTierMap[selectedProduct.slug] || 0;
+  const userCurTier = userRankStatus.current_tier || 0;
+
+  let unitPrice = selectedProduct.price;
+  if (pTier > 0 && userCurTier > 0 && userCurTier < pTier) {
+    const curPrice = rankPrices[userCurTier] || 0;
+    unitPrice = Math.max(0, selectedProduct.price - curPrice);
+  }
+
+  let total = unitPrice * qty;
+  if (storeAppliedCoupon && storeAppliedCoupon.discount_amount) {
+    total = Math.max(0, total - storeAppliedCoupon.discount_amount);
+  }
+
   document.getElementById('m-calc-total').textContent = total.toLocaleString('vi-VN') + 'đ';
 }
 
@@ -824,8 +1368,17 @@ function startCountdown() {
 async function submitCreateOrder() {
   if (!selectedProduct) return;
   const qty = Math.max(1, parseInt(document.getElementById('m-qty').value, 10) || 1);
-  const mc = document.getElementById('m-mc').value.trim();
+  const u = api.getUser();
+  const mc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+
+  if (!mc && !isGuestOrAdmin) {
+    document.getElementById('m-error-msg').innerHTML = '<span style="color:#ef4444;font-size:0.85rem">⚠️ Vui lòng liên kết tài khoản Minecraft trước khi đặt hàng!</span>';
+    return;
+  }
+
   const note = document.getElementById('m-client-note').value.trim();
+  const coupon = storeAppliedCoupon ? storeAppliedCoupon.code : (document.getElementById('m-coupon')?.value.trim() || '');
   const btn = document.getElementById('m-submit-btn');
 
   btn.disabled = true;
@@ -833,7 +1386,7 @@ async function submitCreateOrder() {
   document.getElementById('m-error-msg').innerHTML = '';
 
   try {
-    const res = await api.createOrder([{ productId: selectedProduct._id, quantity: qty }], mc, note, 'qr');
+    const res = await api.createOrder([{ productId: selectedProduct._id, quantity: qty }], mc, note, 'qr', '', coupon);
     const order = (res && (res.order || res.data)) || res;
     if (!order) throw new Error('Không nhận được dữ liệu đơn hàng từ máy chủ.');
 

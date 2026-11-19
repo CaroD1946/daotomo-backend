@@ -410,10 +410,10 @@ const api = {
     return api.request(`/products${qs ? '?'+qs : ''}`);
   },
   getProduct:  (id) => api.request(`/products/${id}`),
-  createOrder: async function(items, mc='', note='', paymentMethod='qr', idempotencyKey='') {
+  createOrder: async function(items, mc='', note='', paymentMethod='qr', idempotencyKey='', couponCode='') {
     const headers = {};
     if (idempotencyKey) headers['X-Idempotency-Key'] = idempotencyKey;
-    const payload = { items, minecraftUsername: mc, note, paymentMethod, idempotencyKey };
+    const payload = { items, minecraftUsername: mc, note, paymentMethod, idempotencyKey, couponCode, coupon_code: couponCode };
 
     // If user is logged in, try member order first
     if (this.isLoggedIn()) {
@@ -443,6 +443,80 @@ const api = {
       headers,
       body: JSON.stringify(payload),
     });
+  },
+  validateCoupon: (code, totalAmount) =>
+    api.request('/coupons/validate', { method: 'POST', body: JSON.stringify({ code, total_amount: totalAmount }) }),
+  getAnnouncement: () => api.request('/announcement'),
+  updateAnnouncement: (data) =>
+    api.request('/admin/announcement', { method: 'PUT', body: JSON.stringify(data) }),
+  getLuckyWheelStatus: () => api.request('/lucky-wheel/status'),
+  spinLuckyWheel: (useCoins = false) =>
+    api.request('/lucky-wheel/spin', { method: 'POST', body: JSON.stringify({ use_coins: useCoins }) }),
+  getAdminAnalytics: () => api.request('/admin/analytics/overview'),
+  getAdminCoupons: () => api.request('/admin/coupons'),
+  createAdminCoupon: (data) =>
+    api.request('/admin/coupons', { method: 'POST', body: JSON.stringify(data) }),
+  updateAdminCoupon: (id, data) =>
+    api.request(`/admin/coupons/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteAdminCoupon: (id) =>
+    api.request(`/admin/coupons/${id}`, { method: 'DELETE' }),
+  getAdminCouponUsages: (id) =>
+    api.request(`/admin/coupons/${id}/usages`),
+  cart: {
+    getKey() { return 'daotomo_cart_items'; },
+    getItems() {
+      try { return JSON.parse(localStorage.getItem(this.getKey()) || '[]'); }
+      catch (e) { return []; }
+    },
+    saveItems(items) {
+      localStorage.setItem(this.getKey(), JSON.stringify(items));
+      window.dispatchEvent(new CustomEvent('daotomo:cart-updated', { detail: { items } }));
+    },
+    addItem(product, qty = 1) {
+      const items = this.getItems();
+      const pId = product._id || product.id;
+      const existing = items.find(it => it.productId === pId);
+      if (existing) {
+        existing.quantity = Math.min(99, existing.quantity + qty);
+      } else {
+        items.push({
+          productId: pId,
+          name: product.name,
+          price: product.price,
+          image: product.image,
+          category: product.category,
+          slug: product.slug,
+          quantity: qty
+        });
+      }
+      this.saveItems(items);
+      return items;
+    },
+    updateQty(productId, qty) {
+      let items = this.getItems();
+      if (qty <= 0) {
+        items = items.filter(it => it.productId !== productId);
+      } else {
+        const item = items.find(it => it.productId === productId);
+        if (item) item.quantity = Math.min(99, qty);
+      }
+      this.saveItems(items);
+      return items;
+    },
+    removeItem(productId) {
+      const items = this.getItems().filter(it => it.productId !== productId);
+      this.saveItems(items);
+      return items;
+    },
+    clear() {
+      this.saveItems([]);
+    },
+    getCount() {
+      return this.getItems().reduce((sum, it) => sum + (it.quantity || 1), 0);
+    },
+    getTotal() {
+      return this.getItems().reduce((sum, it) => sum + ((it.price || 0) * (it.quantity || 1)), 0);
+    }
   },
   getMyOrders: (params={}) => {
     const qs = new URLSearchParams(params).toString();
@@ -1997,3 +2071,13 @@ window.addEventListener('daotomo:auth-changed', () => {
     api.syncNavAuth();
   }
 });
+
+// Automatic Top Announcement Bar loader
+(function() {
+  if (typeof window !== 'undefined') {
+    const s = document.createElement('script');
+    s.src = '/js/announcement.js?v=1.0';
+    s.defer = true;
+    document.head.appendChild(s);
+  }
+})();

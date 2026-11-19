@@ -596,6 +596,58 @@
         </div>
         <div class="calendar-grid" id="calendar-grid"></div>
       </div>
+
+      <!-- LUCKY WHEEL SECTION -->
+      <div class="card lucky-wheel-card reveal" id="lucky-wheel-section" style="margin-top:2rem;text-align:center;padding:2.2rem 1.5rem;position:relative;overflow:hidden;background:radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, rgba(15,23,42,0.8) 100%)">
+        <div style="margin-bottom:1.25rem">
+          <span style="font-size:0.75rem;background:linear-gradient(135deg,#f59e0b,#ec4899);color:#fff;padding:3px 12px;border-radius:999px;font-weight:800;text-transform:uppercase;letter-spacing:0.5px">Mini-game Đổi Quà</span>
+          <h2 style="font-size:1.65rem;font-weight:800;color:#fff;margin:0.5rem 0 0.35rem;font-family:var(--font-display)">🎯 Vòng Quay May Mắn</h2>
+          <p style="color:var(--text-muted);font-size:0.88rem;max-width:540px;margin:0 auto;line-height:1.5">
+            Mỗi lần điểm danh web nhận được <strong>2 lượt quay miễn phí</strong>! Trúng thưởng Coins, Chìa Khóa Crate, Voucher và Danh Hiệu độc quyền.
+          </p>
+        </div>
+
+        <div style="display:flex;justify-content:center;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.6rem 1.25rem;display:flex;align-items:center;gap:0.5rem">
+            <span style="font-size:1.2rem">🎯</span>
+            <div style="text-align:left">
+              <span style="font-size:0.75rem;color:var(--text-muted);display:block">Lượt quay miễn phí:</span>
+              <strong id="lw-spins-val" style="color:#38bdf8;font-size:1.15rem;font-family:var(--font-mono)">0</strong>
+            </div>
+          </div>
+          <div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.6rem 1.25rem;display:flex;align-items:center;gap:0.5rem">
+            <span style="font-size:1.2rem">🪙</span>
+            <div style="text-align:left">
+              <span style="font-size:0.75rem;color:var(--text-muted);display:block">Kho Xu của bạn:</span>
+              <strong id="lw-coins-val" style="color:#fbbf24;font-size:1.15rem;font-family:var(--font-mono)">0</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Wheel Canvas Container -->
+        <div style="position:relative;width:340px;max-width:88vw;height:340px;margin:0 auto 1.25rem">
+          <!-- Outer glowing ring -->
+          <div style="position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle, rgba(124,58,237,0.4), rgba(34,211,238,0.2), transparent 70%);pointer-events:none;filter:blur(6px)"></div>
+          <!-- Pointer at top center -->
+          <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);z-index:20;width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;border-top:22px solid #f59e0b;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.8))"></div>
+          
+          <canvas id="lucky-wheel-canvas" width="340" height="340" style="border-radius:50%;border:4px solid #1e293b;box-shadow:0 10px 30px rgba(0,0,0,0.8);background:#0f172a;cursor:pointer"></canvas>
+          
+          <!-- Center Button -->
+          <button id="btn-spin-wheel" onclick="handleSpinWheel()" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:15;width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,#f59e0b,#ec4899);border:3px solid #0f172a;color:#fff;font-weight:900;font-size:0.88rem;cursor:pointer;box-shadow:0 4px 15px rgba(245,158,11,0.5);display:flex;align-items:center;justify-content:center;transition:transform 0.15s;font-family:var(--font-display)">
+            QUAY
+          </button>
+        </div>
+
+        <div style="margin-bottom:0.85rem">
+          <label style="font-size:0.82rem;color:#94a3b8;cursor:pointer;display:inline-flex;align-items:center;gap:0.4rem">
+            <input type="checkbox" id="lw-use-coins-chk" style="accent-color:#f59e0b">
+            <span>Dùng <strong>15 Coins</strong> để quay khi hết lượt miễn phí</span>
+          </label>
+        </div>
+
+        <div id="lw-result-msg" style="min-height:24px;font-size:0.92rem;font-weight:700"></div>
+      </div>
     </div>
   </div>
 </main>
@@ -810,6 +862,7 @@ async function doCheckin() {
     if (typeof api.showToast === 'function') {
       api.showToast(successMsg, 'success');
     }
+    await loadLuckyWheelState();
   } catch (e) {
     document.getElementById('checkin-note').textContent = e.message;
     btn.disabled = false;
@@ -823,12 +876,192 @@ async function doCheckin() {
   }
 }
 
+/* ═══════════════════════════════════════════════════════════
+   LUCKY WHEEL SYSTEM (16 SLOTS)
+═══════════════════════════════════════════════════════════ */
+let wheelSlots = [];
+let wheelAngle = 0;
+let isSpinning = false;
+let userSpins = 0;
+let userCoins = 0;
+
+const WHEEL_COLORS = [
+  '#1e1b4b', '#0f172a', '#312e81', '#1e293b',
+  '#4338ca', '#0f172a', '#3b82f6', '#1e1b4b',
+  '#6366f1', '#0f172a', '#8b5cf6', '#1e293b',
+  '#a855f7', '#0f172a', '#ec4899', '#1e1b4b'
+];
+
+async function loadLuckyWheelState() {
+  try {
+    const res = await api.getLuckyWheelStatus();
+    if (res && res.success) {
+      wheelSlots = res.slots || [];
+      userSpins = Number(res.lucky_spins || 0);
+      userCoins = Number(res.coins || 0);
+
+      const spinsEl = document.getElementById('lw-spins-val');
+      const coinsEl = document.getElementById('lw-coins-val');
+      if (spinsEl) spinsEl.textContent = userSpins;
+      if (coinsEl) coinsEl.textContent = userCoins.toLocaleString('vi-VN');
+
+      drawWheel();
+    }
+  } catch (e) {}
+}
+
+function drawWheel() {
+  const canvas = document.getElementById('lucky-wheel-canvas');
+  if (!canvas || !wheelSlots.length) return;
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width;
+  const h = canvas.height;
+  const cx = w / 2;
+  const cy = h / 2;
+  const radius = cx - 6;
+
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(wheelAngle);
+
+  const numSlices = wheelSlots.length;
+  const sliceAngle = (2 * Math.PI) / numSlices;
+
+  for (let i = 0; i < numSlices; i++) {
+    const startAngle = i * sliceAngle;
+    const endAngle = startAngle + sliceAngle;
+    const slot = wheelSlots[i];
+
+    // Slice background
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.arc(0, 0, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = WHEEL_COLORS[i % WHEEL_COLORS.length];
+    ctx.fill();
+
+    // Border line
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Slot text & icon
+    ctx.save();
+    ctx.rotate(startAngle + sliceAngle / 2);
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 11px Be Vietnam Pro, sans-serif';
+
+    let name = slot.name || '';
+    if (name.length > 13) name = name.slice(0, 12) + '…';
+    ctx.fillText(`${slot.icon || '🎁'} ${name}`, radius - 14, 0);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+async function handleSpinWheel() {
+  if (isSpinning) return;
+  if (!api.isLoggedIn()) {
+    api.showToast('Vui lòng đăng nhập để tham gia Vòng Quay May Mắn!', 'error');
+    return;
+  }
+
+  const useCoins = document.getElementById('lw-use-coins-chk')?.checked;
+  if (userSpins <= 0 && !useCoins) {
+    if (userCoins >= 15) {
+      const confirmUse = confirm('Bạn đã hết lượt quay miễn phí! Bạn có muốn dùng 15 Coins để quay thêm không?');
+      if (confirmUse) {
+        document.getElementById('lw-use-coins-chk').checked = true;
+      } else {
+        return;
+      }
+    } else {
+      api.showToast('Bạn đã hết lượt quay miễn phí! Điểm danh mỗi ngày để nhận thêm 2 lượt quay!', 'error');
+      return;
+    }
+  }
+
+  const btn = document.getElementById('btn-spin-wheel');
+  const msgEl = document.getElementById('lw-result-msg');
+  if (msgEl) msgEl.innerHTML = '<span style="color:#38bdf8">Đang quay... Chúc bạn may mắn! 🍀</span>';
+
+  isSpinning = true;
+  btn.disabled = true;
+  btn.style.transform = 'translate(-50%, -50%) scale(0.92)';
+
+  try {
+    const res = await api.spinLuckyWheel(document.getElementById('lw-use-coins-chk')?.checked);
+    if (!res || !res.success) {
+      throw new Error(res.message || 'Lỗi khi quay thưởng');
+    }
+
+    const wonIndex = res.slot_index;
+    const reward = res.reward;
+    userSpins = res.remaining_spins;
+    userCoins = res.remaining_coins;
+
+    const spinsEl = document.getElementById('lw-spins-val');
+    const coinsEl = document.getElementById('lw-coins-val');
+    if (spinsEl) spinsEl.textContent = userSpins;
+    if (coinsEl) coinsEl.textContent = userCoins.toLocaleString('vi-VN');
+
+    const numSlices = wheelSlots.length;
+    const sliceDeg = 360 / numSlices;
+    const targetSliceCenterDeg = (wonIndex * sliceDeg) + (sliceDeg / 2);
+    const targetDeg = (360 * 5) + (270 - targetSliceCenterDeg);
+    const targetRad = (targetDeg * Math.PI) / 180;
+
+    const startRad = wheelAngle % (2 * Math.PI);
+    const totalRad = targetRad - startRad;
+    const duration = 4500;
+    const startTime = performance.now();
+
+    function animate(currentTime) {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      const ease = 1 - Math.pow(1 - progress, 3);
+      wheelAngle = startRad + (totalRad * ease);
+      drawWheel();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        isSpinning = false;
+        btn.disabled = false;
+        btn.style.transform = 'translate(-50%, -50%) scale(1)';
+
+        if (window.ConfettiFX) ConfettiFX.fire();
+        if (window.SoundFX) SoundFX.playSuccess();
+
+        if (msgEl) {
+          msgEl.innerHTML = `<span style="color:#34d399">🎉 Chúc mừng! Bạn trúng thưởng <strong>${reward.name}</strong> (${reward.icon})!</span>`;
+        }
+        api.showToast(`Trúng thưởng: ${reward.name}!`, 'success');
+      }
+    }
+
+    requestAnimationFrame(animate);
+  } catch (err) {
+    isSpinning = false;
+    btn.disabled = false;
+    btn.style.transform = 'translate(-50%, -50%) scale(1)';
+    if (msgEl) msgEl.innerHTML = `<span style="color:#ef4444">❌ ${api.escapeHtml(err.message)}</span>`;
+    if (window.SoundFX) SoundFX.playError();
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (api.isLoggedIn()) {
     document.getElementById('logged-in-box').classList.remove('hidden');
     loadCheckinState();
+    loadLuckyWheelState();
   } else {
     document.getElementById('logged-out-box').classList.remove('hidden');
+    loadLuckyWheelState();
   }
 });
 </script>

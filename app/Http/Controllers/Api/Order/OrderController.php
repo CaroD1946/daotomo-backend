@@ -34,6 +34,7 @@ class OrderController extends Controller
         }
 
         $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotencyKey');
+        $couponCode = (string) ($request->input('couponCode') ?? $request->input('coupon_code') ?? '');
 
         $result = $this->orderService->createOrder(
             $user,
@@ -41,7 +42,8 @@ class OrderController extends Controller
             (string) ($request->input('minecraftUsername') ?? ''),
             (string) ($request->input('note') ?? ''),
             (string) ($request->input('paymentMethod') ?? 'qr'),
-            $idempotencyKey
+            $idempotencyKey,
+            $couponCode
         );
 
         return response()->json($result['data'], $result['status']);
@@ -65,6 +67,7 @@ class OrderController extends Controller
         );
 
         $idempotencyKey = $request->header('X-Idempotency-Key') ?? $request->input('idempotencyKey');
+        $couponCode = (string) ($request->input('couponCode') ?? $request->input('coupon_code') ?? '');
 
         $result = $this->orderService->createOrder(
             $guestUser,
@@ -72,7 +75,8 @@ class OrderController extends Controller
             (string) ($request->input('minecraftUsername') ?? ''),
             (string) ($request->input('note') ?? ''),
             (string) ($request->input('paymentMethod') ?? 'qr'),
-            $idempotencyKey
+            $idempotencyKey,
+            $couponCode
         );
 
         return response()->json($result['data'], $result['status']);
@@ -243,11 +247,33 @@ class OrderController extends Controller
         }
 
         $highest = OrderService::getUserHighestRankTier($user);
+        $rankPrices = [
+            1 => 49000,  // Knight
+            2 => 89000,  // Legend
+            3 => 129000, // Master
+            4 => 169000, // Overlord
+            5 => 219000, // God
+        ];
+        $currentTier = $highest['tier'];
+        $currentRankPrice = $currentTier > 0 ? ($rankPrices[$currentTier] ?? 0) : 0;
+
+        $upgrades = [];
+        foreach ($rankPrices as $tier => $fullPrice) {
+            if ($tier > $currentTier) {
+                $upgrades[$tier] = [
+                    'original_price' => $fullPrice,
+                    'upgrade_price' => max(0, $fullPrice - $currentRankPrice),
+                    'discount_amount' => $currentRankPrice,
+                ];
+            }
+        }
 
         return response()->json([
             'success' => true,
             'current_rank' => $highest['rank_name'],
             'current_tier' => $highest['tier'],
+            'current_rank_price' => $currentRankPrice,
+            'upgrades' => $upgrades,
             'rent_pricing' => OrderService::COIN_RENT_PRICING,
         ]);
     }

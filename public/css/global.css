@@ -34,6 +34,25 @@ body {
   background: #394569;
 }
 
+/* ════ Universal Form Controls / Select & Option Styling ════ */
+select {
+  background-color: #111827;
+  color: #f8fafc;
+}
+select option {
+  background-color: #151928 !important;
+  color: #f1f5f9 !important;
+  padding: 10px 14px;
+}
+select option:disabled {
+  color: #64748b !important;
+  background-color: #0f121d !important;
+}
+select option:hover, select option:focus, select option:checked {
+  background-color: #3b82f6 !important;
+  color: #ffffff !important;
+}
+
 /* ════ Keyframe Animations ════ */
 @keyframes spinConic {
   from { transform: rotate(0deg); }

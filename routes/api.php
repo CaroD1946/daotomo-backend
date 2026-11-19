@@ -17,6 +17,11 @@ use App\Http\Controllers\Api\Payment\SepayWebhookController;
 use App\Http\Controllers\Api\Support\SupportTicketController;
 use App\Http\Controllers\Api\User\GameLinkController;
 use App\Http\Controllers\Api\Internal\InternalMinecraftBridgeController;
+use App\Http\Controllers\Api\Common\AnnouncementController;
+use App\Http\Controllers\Api\Coupon\CouponController;
+use App\Http\Controllers\Api\Admin\AdminCouponController;
+use App\Http\Controllers\Api\Game\LuckyWheelController;
+use App\Http\Controllers\Api\Admin\AdminAnalyticsController;
 use App\Http\Middleware\AdminMiddleware;
 
 // ─── Health Check ─────────────────────────────────────────────────────────────
@@ -76,6 +81,11 @@ Route::get('/tickets/lookup', [SupportTicketController::class, 'lookup']);
 Route::middleware('throttle:15,1')->post('/tickets/{codeOrId}/reply', [SupportTicketController::class, 'reply']);
 Route::middleware('throttle:15,1')->post('/tickets/{codeOrId}/close', [SupportTicketController::class, 'close']);
 
+// ─── Public Announcement, Coupons & Lucky Wheel ──────────────────────────────
+Route::get('/announcement', [AnnouncementController::class, 'getAnnouncement']);
+Route::post('/coupons/validate', [CouponController::class, 'validateCoupon']);
+Route::get('/lucky-wheel/status', [LuckyWheelController::class, 'status']);
+
 // ─── SePay Webhook Endpoints ──────────────────────────────────────────────────
 Route::match(['GET', 'POST'], '/webhooks/sepay', [SepayWebhookController::class, 'handleWebhook']);
 Route::match(['GET', 'POST'], '/sepay/webhook', [SepayWebhookController::class, 'handleWebhook']);
@@ -98,9 +108,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/ranks/my-rank', [OrderController::class, 'myRankStatus']);
     Route::post('/ranks/rent-with-coins', [OrderController::class, 'rentRankWithCoins']);
 
-    // Checkin daily
+    // Checkin daily & Lucky Wheel
     Route::post('/checkin', [CheckinController::class, 'store']);
     Route::get('/checkin/me', [CheckinController::class, 'me']);
+    Route::post('/lucky-wheel/spin', [LuckyWheelController::class, 'spin']);
 
     // Support Tickets (Authenticated User History)
     Route::get('/tickets/my', [SupportTicketController::class, 'myTickets']);
@@ -135,6 +146,19 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/admin/tickets/{id}', [AdminSupportController::class, 'updateStatus']);
         Route::put('/admin/support/settings', [AdminSupportController::class, 'updateSettings']);
         Route::post('/admin/support/test-webhook', [AdminSupportController::class, 'testWebhook']);
+
+        // Announcement Settings
+        Route::put('/admin/announcement', [AnnouncementController::class, 'updateAnnouncement']);
+
+        // Coupon Management
+        Route::get('/admin/coupons', [AdminCouponController::class, 'index']);
+        Route::post('/admin/coupons', [AdminCouponController::class, 'store']);
+        Route::put('/admin/coupons/{id}', [AdminCouponController::class, 'update']);
+        Route::delete('/admin/coupons/{id}', [AdminCouponController::class, 'destroy']);
+        Route::get('/admin/coupons/{id}/usages', [AdminCouponController::class, 'usages']);
+
+        // Visual Analytics Overview
+        Route::get('/admin/analytics/overview', [AdminAnalyticsController::class, 'overview']);
     });
 });
 

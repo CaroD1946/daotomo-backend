@@ -2,6 +2,8 @@
 
 namespace App\Services\Order;
 
+use App\Models\Coupon;
+use App\Models\CouponUsage;
 use App\Models\GameDeliveryQueue;
 use App\Models\Order;
 use App\Models\OrderItem;
@@ -52,6 +54,18 @@ class OrderService
             4 => 'Overlord',
             5 => 'God',
             default => 'Chưa có',
+        };
+    }
+
+    public static function getRankSlugByTier(int $tier): string
+    {
+        return match ($tier) {
+            1 => 'rank-knight',
+            2 => 'rank-legend',
+            3 => 'rank-master',
+            4 => 'rank-overlord',
+            5 => 'rank-god',
+            default => '',
         };
     }
 
@@ -231,7 +245,8 @@ class OrderService
         ];
     }
     /**
-     * Process order creation with DB product verification, transaction safety, and idempotency.
+     * Process order creation with DB product verification, transaction safety, idempotency,
+     * Minecraft account link enforcement, Rank Upgrade price deduction, and Coupon application.
      *
      * @param User $user
      * @param array $items
@@ -239,6 +254,7 @@ class OrderService
      * @param string $note
      * @param string $paymentMethod
      * @param string|null $idempotencyKey
+     * @param string|null $couponCode
      * @return array
      */
     public function createOrder(
@@ -247,7 +263,8 @@ class OrderService
         string $minecraftUsername = '',
         string $note = '',
         string $paymentMethod = 'qr',
-        ?string $idempotencyKey = null
+        ?string $idempotencyKey = null,
+        ?string $couponCode = null
     ): array {
         // Idempotency check: if already processed, return existing order
         if (!empty($idempotencyKey)) {
@@ -282,6 +299,11 @@ class OrderService
         // Validate items and compute price strictly from DB
         $totalAmount = 0;
         $orderItemsData = [];
+
+        $isGuestOrAdmin = ($user->role === 'admin' || str_starts_with($user->email, 'guest'));
+        $finalMcUsername = ($isGuestOrAdmin && !empty($minecraftUsername))
+            ? $minecraftUsername
+            : (!empty($user->minecraft_username) ? $user->minecraft_username : (!empty($minecraftUsername) ? $minecraftUsername : ''));
 
         foreach ($items as $item) {
             $productId = $item['productId'] ?? $item['product'] ?? null;
@@ -350,10 +372,25 @@ class OrderService
                 ];
             }
 
-            // Rank Tier Restriction: Players cannot re-buy an owned rank or buy a lower rank tier
+            // Enforce Minecraft Account Link for normal registered users
+            if (!$isGuestOrAdmin && empty($user->minecraft_username)) {
+                return [
+                    'status' => 400,
+                    'data' => [
+                        'success' => false,
+                        'message' => 'Bạn cần liên kết tài khoản Minecraft trước khi mua hàng. Hệ thống sẽ tự động giao vật phẩm đến tài khoản game đã liên kết!',
+                        'require_link' => true,
+                    ],
+                ];
+            }
+
+            // Rank Tier Restriction & Rank Upgrade Price Deduction
             $targetRankTier = self::getRankTier($product->game_reward ?: $product->slug);
+            $upgradeDiscount = 0;
+            $itemName = $product->name;
+
             if ($targetRankTier > 0) {
-                $userHighest = self::getUserHighestRankTier($user, $minecraftUsername);
+                $userHighest = self::getUserHighestRankTier($user, $finalMcUsername);
                 if ($userHighest['tier'] >= $targetRankTier) {
                     $ownedTitle = self::getRankTitleByTier($userHighest['tier']);
                     return [
@@ -366,20 +403,62 @@ class OrderService
                             'target_tier' => $targetRankTier,
                         ],
                     ];
+                } elseif ($userHighest['tier'] > 0) {
+                    // Calculate Rank Upgrade offset
+                    $ownedRankSlug = self::getRankSlugByTier($userHighest['tier']);
+                    $ownedProduct = Product::where('slug', $ownedRankSlug)->orWhere('game_reward', 'rank_' . str_replace('rank-', '', $ownedRankSlug))->first();
+                    $ownedPrice = $ownedProduct ? (float) $ownedProduct->price : 0;
+                    $upgradeDiscount = min((float) $product->price, $ownedPrice);
+                    $itemName .= " (Nâng cấp từ Rank " . self::getRankTitleByTier($userHighest['tier']) . ")";
+                    $note = trim($note . " [Nâng cấp từ Rank {$userHighest['rank_name']} (-" . number_format($upgradeDiscount, 0, ',', '.') . "đ)]");
                 }
             }
 
-            $price = (float) $product->price;
+            $price = max(0, (float) $product->price - $upgradeDiscount);
             $subtotal = $price * $quantity;
             $totalAmount += $subtotal;
 
             $orderItemsData[] = [
                 'product_id' => $product->id,
-                'product_name' => $product->name,
+                'product_name' => $itemName,
                 'price' => $price,
                 'quantity' => $quantity,
                 'subtotal' => $subtotal,
             ];
+        }
+
+        // Validate Coupon if provided
+        $appliedCoupon = null;
+        $discountAmount = 0;
+        $originalAmount = $totalAmount;
+
+        if (!empty($couponCode)) {
+            $cCode = strtoupper(trim($couponCode));
+            $coupon = Coupon::where('code', $cCode)->first();
+            if (!$coupon) {
+                return [
+                    'status' => 422,
+                    'data' => [
+                        'success' => false,
+                        'message' => "Mã giảm giá '{$cCode}' không tồn tại.",
+                    ],
+                ];
+            }
+
+            $cCheck = $coupon->isValidForOrder($totalAmount, $user->id);
+            if (!$cCheck['valid']) {
+                return [
+                    'status' => 422,
+                    'data' => [
+                        'success' => false,
+                        'message' => $cCheck['message'],
+                    ],
+                ];
+            }
+
+            $discountAmount = (float) $cCheck['discount_amount'];
+            $totalAmount = (float) $cCheck['final_total'];
+            $appliedCoupon = $coupon;
         }
 
         // Generate unique code e.g. DTM-XXXXXX
@@ -399,8 +478,6 @@ class OrderService
             }
         }
 
-        $finalMcUsername = !empty($minecraftUsername) ? $minecraftUsername : ($user->minecraft_username ?? '');
-
         try {
             $createdOrder = Order::create([
                 'order_code' => $orderCode,
@@ -409,6 +486,9 @@ class OrderService
                 'note' => $note,
                 'payment_method' => $paymentMethod,
                 'total_amount' => $totalAmount,
+                'coupon_code' => $appliedCoupon ? $appliedCoupon->code : null,
+                'discount_amount' => $discountAmount,
+                'original_amount' => $originalAmount,
                 'order_status' => $paymentMethod === 'coins' ? 'processing' : 'pending',
                 'payment_status' => $paymentMethod === 'coins' ? 'paid' : 'pending',
                 'status' => $paymentMethod === 'coins' ? 'paid' : 'pending',
@@ -426,6 +506,16 @@ class OrderService
             foreach ($orderItemsData as $data) {
                 $data['order_id'] = $createdOrder->id;
                 OrderItem::create($data);
+            }
+
+            if ($appliedCoupon) {
+                CouponUsage::create([
+                    'coupon_id' => $appliedCoupon->id,
+                    'user_id' => $user->id,
+                    'order_id' => $createdOrder->id,
+                    'discount_amount' => $discountAmount,
+                ]);
+                $appliedCoupon->increment('used_count');
             }
 
             if ($paymentMethod === 'coins') {

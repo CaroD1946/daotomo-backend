@@ -559,18 +559,83 @@ async function loadDetail() {
     const pTier = rankMeta ? rankMeta.tier : 0;
     const isOwnedOrLower = (pTier > 0 && userRankTier >= pTier);
 
-    let buyBtnText = p.inStock ? '🛒 Mua ngay — ' + Number(p.price || 0).toLocaleString('vi-VN') + 'đ' : 'Hết hàng';
+    const userObj = api.getUser();
+    const userCoins = Number((userObj && userObj.coins) || 0);
+    const savedIgn = (userObj && (userObj.minecraft_username || userObj.minecraftUsername)) || '';
+    const hasLinkedMc = !!savedIgn;
+    const isGuestOrAdmin = userObj && (userObj.role === 'admin' || userObj.email?.startsWith('guest'));
+
+    let upgradeDiscount = 0;
+    let finalVndPrice = Number(p.price || 0);
+    let upgradeBannerHtml = '';
+
+    if (pTier > 0 && userRankTier > 0 && userRankTier < pTier) {
+      const rankPrices = { 1: 49000, 2: 89000, 3: 129000, 4: 169000, 5: 219000 };
+      const currentRankPrice = rankPrices[userRankTier] || 0;
+      upgradeDiscount = Math.min(finalVndPrice, currentRankPrice);
+      finalVndPrice = Math.max(0, finalVndPrice - upgradeDiscount);
+
+      upgradeBannerHtml = `
+        <div style="background:rgba(124,58,237,0.12);border:1px solid rgba(139,92,246,0.35);border-radius:10px;padding:0.85rem 1.1rem;margin-bottom:1rem">
+          <div style="font-size:0.82rem;font-weight:700;color:#c084fc;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.4rem;display:flex;align-items:center;gap:0.4rem">
+            <span>⚡</span> Ưu Đãi Nâng Cấp Rank (Khấu Trừ Chênh Lệch)
+          </div>
+          <div style="font-size:0.84rem;color:#94a3b8;display:flex;justify-content:space-between;margin-bottom:0.25rem">
+            <span>Giá niêm yết:</span>
+            <span style="text-decoration:line-through">${Number(p.price || 0).toLocaleString('vi-VN')}đ</span>
+          </div>
+          <div style="font-size:0.84rem;color:#34d399;display:flex;justify-content:space-between;margin-bottom:0.35rem">
+            <span>Đã sở hữu Rank ${userRankStatus.current_rank || 'Cấp ' + userRankTier}:</span>
+            <span>-${upgradeDiscount.toLocaleString('vi-VN')}đ</span>
+          </div>
+          <div style="border-top:1px dashed rgba(255,255,255,0.1);padding-top:0.4rem;display:flex;justify-content:space-between;font-weight:800">
+            <span style="color:#fff">Số tiền cần thanh toán:</span>
+            <span style="color:#22d3ee;font-size:1.15rem;font-family:var(--font-mono)">${finalVndPrice.toLocaleString('vi-VN')}đ</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let buyBtnText = p.inStock ? '🛒 Mua ngay — ' + Number(finalVndPrice).toLocaleString('vi-VN') + 'đ' : 'Hết hàng';
     let buyBtnDisabled = !p.inStock;
     if (isOwnedOrLower) {
       buyBtnDisabled = true;
       buyBtnText = (userRankTier === pTier) ? '🔒 Đã sở hữu Rank này' : '🔒 Đã có Rank cấp cao hơn';
     } else if (pTier > 0 && userRankTier > 0) {
-      buyBtnText = '⚡ Nâng cấp lên ' + safeName + ' — ' + Number(p.price || 0).toLocaleString('vi-VN') + 'đ';
+      buyBtnText = '⚡ Nâng Cấp Lên ' + safeName + ' — ' + Number(finalVndPrice).toLocaleString('vi-VN') + 'đ';
     }
 
-    const userObj = api.getUser();
-    const userCoins = Number((userObj && userObj.coins) || 0);
-    const savedIgn = (userObj && (userObj.minecraft_username || userObj.minecraftUsername)) || '';
+    if (!hasLinkedMc && !isGuestOrAdmin && !isOwnedOrLower) {
+      buyBtnDisabled = true;
+      buyBtnText = '⚠️ Vui lòng liên kết Minecraft để mua';
+    }
+
+    let mcLinkBoxHtml = '';
+    if (hasLinkedMc) {
+      mcLinkBoxHtml = `
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:0.75rem 1rem;margin-top:0.85rem;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <span style="font-size:0.76rem;color:#94a3b8;display:block">Tài khoản Minecraft nhận vật phẩm:</span>
+            <strong style="color:#34d399;font-size:1.02rem;font-family:var(--font-mono)">🎮 ${api.escapeHtml(savedIgn)}</strong>
+          </div>
+          <span style="background:rgba(16,185,129,0.15);color:#34d399;font-size:0.75rem;padding:3px 9px;border-radius:999px;font-weight:700">✅ Đã liên kết</span>
+        </div>
+      `;
+    } else {
+      mcLinkBoxHtml = `
+        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.35);border-radius:10px;padding:0.85rem 1rem;margin-top:0.85rem">
+          <div style="color:#fbbf24;font-size:0.85rem;font-weight:700;display:flex;align-items:center;gap:0.4rem;margin-bottom:0.25rem">
+            <span>⚠️</span> Bạn chưa liên kết tài khoản Minecraft
+          </div>
+          <p style="color:#cbd5e1;font-size:0.82rem;margin:0 0 0.6rem;line-height:1.45">
+            Hệ thống chỉ tự động giao vật phẩm đến tài khoản Minecraft đã liên kết.
+          </p>
+          <a href="/html/Account.html?redirect=${encodeURIComponent(location.pathname + location.search)}" class="btn" style="display:inline-block;padding:0.4rem 0.9rem;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:6px;text-decoration:none">
+            🔗 Liên kết tài khoản ngay →
+          </a>
+        </div>
+      `;
+    }
 
     // Render HTML
     let purchaseAreaHtml = '';
@@ -579,7 +644,7 @@ async function loadDetail() {
     if (rankMeta) {
       // Thiết lập trạng thái chặn thuê rank theo ngày nếu đã có rank bằng hoặc cao hơn
       let rentBtnText = `⚡ Kích Hoạt Thuê ${rankMeta.name} (${rankMeta.coinPricing[selectedDuration]} Coins)`;
-      let rentBtnDisabled = false;
+      let rentBtnDisabled = !hasLinkedMc && !isGuestOrAdmin;
       let rentNoticeHtml = '';
 
       if (isOwnedOrLower) {
@@ -594,6 +659,8 @@ async function loadDetail() {
             </div>
           </div>
         `;
+      } else if (!hasLinkedMc && !isGuestOrAdmin) {
+        rentBtnText = '⚠️ Vui lòng liên kết Minecraft để thuê';
       }
 
       // Sản phẩm là VIP Rank: Hiển thị 2 Tab Mua Vĩnh Viễn / Thuê Theo Ngày (Coins)
@@ -603,15 +670,16 @@ async function loadDetail() {
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
             Mua Vĩnh Viễn (VNĐ)
           </button>
-          <button class="mode-tab-btn tab-coin ${currentPurchaseMode === 'coin' ? 'active' : ''}" id="tab-coin-btn" type="button" onclick="switchPurchaseMode('coin')">
-            <img src="/img/coin.png" alt="Coin" style="width:17px;height:17px;object-fit:contain;vertical-align:-3px;display:inline-block">
-            Thuê Theo Ngày (Coins)
+          <button class="mode-tab-btn tab-coin ${currentPurchaseMode === 'coin' ? 'active' : ''}" id="tab-coin-btn" type="button" onclick="switchPurchaseMode('coin')" ${isOwnedOrLower ? 'style="opacity:0.75;"' : ''}>
+            <img src="/img/coin.webp" alt="Coin" onerror="this.src='/img/coin.png'" style="width:16px;height:16px;object-fit:contain;vertical-align:-3px;display:inline-block">
+            ${isOwnedOrLower ? '🔒 Thuê Theo Ngày (Đã Khóa)' : 'Thuê Theo Ngày (Coins)'}
           </button>
         </div>
 
         <!-- Section 1: Mua Vĩnh Viễn VNĐ -->
         <div id="mode-vnd-section" style="display:${currentPurchaseMode === 'vnd' ? 'block' : 'none'}">
-          <div class="detail-price">${Number(p.price || 0).toLocaleString('vi-VN')}đ</div>
+          ${upgradeBannerHtml}
+          <div class="detail-price">${Number(finalVndPrice).toLocaleString('vi-VN')}đ</div>
           <div class="qty-row">
             <span style="font-size:0.85rem;font-weight:700;color:var(--text-muted)">Số lượng:</span>
             <div class="qty-control">
@@ -620,9 +688,22 @@ async function loadDetail() {
               <button class="qty-btn" type="button" onclick="changeQty(1)">+</button>
             </div>
           </div>
-          <div class="detail-actions">
+
+          <!-- Coupon Input -->
+          <div style="margin: 0.85rem 0;">
+            <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem">Mã giảm giá / Voucher (nếu có):</label>
+            <div style="display:flex;gap:0.5rem">
+              <input type="text" id="buy-coupon-input" class="input" placeholder="Nhập mã voucher (VD: OPEN2026)" style="flex:1;text-transform:uppercase;font-family:var(--font-mono);font-size:0.85rem;padding:0.55rem 0.8rem">
+              <button type="button" class="btn" onclick="applyCouponDetail()" style="padding:0.55rem 1rem;font-size:0.82rem;font-weight:700;white-space:nowrap;background:rgba(124,58,237,0.3);border:1px solid rgba(139,92,246,0.5);color:#fff">Áp dụng</button>
+            </div>
+            <div id="buy-coupon-msg" style="font-size:0.82rem;margin-top:0.35rem"></div>
+          </div>
+
+          ${mcLinkBoxHtml}
+
+          <div class="detail-actions" style="margin-top:1.15rem">
             <a href="/html/Store.html" class="btn-back">← Cửa hàng</a>
-            <button class="btn-buy-now" id="buy-btn" onclick="handleBuy()" ${buyBtnDisabled ? 'disabled' : ''}>
+            <button class="btn-buy-now" id="buy-btn" onclick="handleBuy()" ${buyBtnDisabled ? 'disabled style="opacity:0.55;cursor:not-allowed;background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.12)"' : ''}>
               ${buyBtnText}
             </button>
           </div>
@@ -632,7 +713,7 @@ async function loadDetail() {
         <div id="mode-coin-section" style="display:${currentPurchaseMode === 'coin' ? 'block' : 'none'}">
           ${rentNoticeHtml}
           <div style="font-size:0.82rem;font-weight:700;color:#22d3ee;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:0.65rem;display:flex;align-items:center;gap:0.4rem">
-            <img src="/img/coin.png" alt="Coin" style="width:17px;height:17px;object-fit:contain;vertical-align:-3px;display:inline-block">
+            <img src="/img/coin.webp" alt="Coin" onerror="this.src='/img/coin.png'" style="width:16px;height:16px;object-fit:contain;vertical-align:-3px;display:inline-block">
             <span>Chọn Thời Hạn Thuê Rank Bằng Coins:</span>
           </div>
           <div class="duration-grid" style="${isOwnedOrLower ? 'opacity:0.4;pointer-events:none;filter:grayscale(0.7);' : ''}">
@@ -667,14 +748,11 @@ async function loadDetail() {
                 <a href="/html/Store.html?cat=coin" style="font-size:0.75rem;color:var(--lagoon);text-decoration:underline">+ Nạp thêm Xu</a>
               </span>
             </div>
-            <div style="margin-top:0.85rem">
-              <label style="display:block;font-size:0.8rem;font-weight:700;color:var(--text-muted);margin-bottom:0.35rem">Tên nhân vật Minecraft nhận Rank:</label>
-              <input type="text" id="rent-ign" class="input" placeholder="Nhập IGN Minecraft (Ví dụ: StevePro99)" value="${api.escapeHtml(savedIgn)}" ${isOwnedOrLower ? 'disabled' : ''} style="width:100%;padding:0.6rem 0.8rem;font-size:0.88rem;background:#0f172a;color:#f8fafc;${isOwnedOrLower ? 'cursor:not-allowed;' : ''}">
-            </div>
+            ${mcLinkBoxHtml}
             <div id="rent-success-msg" style="display:none;margin-top:0.75rem;padding:0.65rem 0.85rem;border-radius:8px;background:rgba(16,185,129,0.12);border:1px solid rgba(16,185,129,0.3);color:#34d399;font-size:0.85rem"></div>
           </div>
 
-          <div class="detail-actions">
+          <div class="detail-actions" style="margin-top:1.15rem">
             <a href="/html/Store.html" class="btn-back">← Cửa hàng</a>
             <button class="btn-rent-coin" id="rent-coin-btn" onclick="handleRentCoins()" ${rentBtnDisabled ? 'disabled style="opacity:0.55;cursor:not-allowed;background:rgba(255,255,255,0.08);color:#94a3b8;border:1px solid rgba(255,255,255,0.12);box-shadow:none"' : ''}>
               ${rentBtnText}
@@ -913,13 +991,12 @@ async function handleRentCoins() {
   }
 
   const u = api.getUser();
-  const ignInput = document.getElementById('rent-ign');
-  const ign = ignInput ? ignInput.value.trim() : ((u && (u.minecraft_username || u.minecraftUsername)) || '');
+  const ign = (u && (u.minecraft_username || u.minecraftUsername)) || '';
 
   if (!ign) {
-    if (typeof api.showToast === 'function') api.showToast('Vui lòng nhập tên nhân vật Minecraft để nhận Rank!', 'error');
-    else alert('Vui lòng nhập tên nhân vật Minecraft để nhận Rank!');
-    if (ignInput) ignInput.focus();
+    if (typeof api.showToast === 'function') api.showToast('Vui lòng liên kết tài khoản Minecraft trước khi thuê Rank!', 'error');
+    else alert('Vui lòng liên kết tài khoản Minecraft trước khi thuê Rank!');
+    location.href = '/html/Account.html?redirect=' + encodeURIComponent(location.pathname + location.search);
     return;
   }
 
@@ -1064,17 +1141,59 @@ function startCountdown() {
   }, 1000);
 }
 
+let appliedCouponCode = '';
+
+async function applyCouponDetail() {
+  const code = (document.getElementById('buy-coupon-input')?.value || '').trim().toUpperCase();
+  const msgEl = document.getElementById('buy-coupon-msg');
+  if (!code) {
+    if (msgEl) msgEl.innerHTML = '<span style="color:#ef4444">Vui lòng nhập mã giảm giá!</span>';
+    return;
+  }
+
+  const qtyInput = document.getElementById('buy-qty');
+  const quantity = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1, 10) || 1);
+  const total = (currentProduct.price || 0) * quantity;
+
+  try {
+    const res = await api.validateCoupon(code, total);
+    if (res && res.valid) {
+      appliedCouponCode = code;
+      if (msgEl) {
+        msgEl.innerHTML = `<span style="color:#34d399;font-weight:700">✅ Áp dụng thành công mã ${res.code}: Giảm ${Number(res.discount_amount).toLocaleString('vi-VN')}đ (Còn ${Number(res.final_total).toLocaleString('vi-VN')}đ)</span>`;
+      }
+      if (typeof api.showToast === 'function') api.showToast(`Áp dụng mã ${res.code} thành công!`, 'success');
+      if (window.SoundFX) SoundFX.playSuccess();
+    }
+  } catch (err) {
+    appliedCouponCode = '';
+    if (msgEl) msgEl.innerHTML = `<span style="color:#ef4444">❌ ${api.escapeHtml(err.message || 'Mã giảm giá không hợp lệ')}</span>`;
+    if (window.SoundFX) SoundFX.playError();
+  }
+}
+
 async function handleBuy() {
   if (!currentProduct) return;
   const qtyInput = document.getElementById('buy-qty');
   const quantity = Math.max(1, parseInt(qtyInput ? qtyInput.value : 1, 10) || 1);
   const btn = document.getElementById('buy-btn');
+
+  const u = api.getUser();
+  const mc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+
+  if (!mc && !isGuestOrAdmin) {
+    if (typeof api.showToast === 'function') api.showToast('Vui lòng liên kết tài khoản Minecraft trước khi mua hàng!', 'error');
+    else alert('Vui lòng liên kết tài khoản Minecraft trước khi mua hàng!');
+    location.href = '/html/Account.html?redirect=' + encodeURIComponent(location.pathname + location.search);
+    return;
+  }
+
   btn.disabled = true; btn.textContent = 'Đang xử lý đơn...';
 
   try {
-    const u = api.getUser();
-    const mc = (u && u.minecraftUsername) || '';
-    const res = await api.createOrder([{ productId: currentProduct._id, quantity }], mc, '', 'qr');
+    const coupon = appliedCouponCode || (document.getElementById('buy-coupon-input')?.value || '').trim();
+    const res = await api.createOrder([{ productId: currentProduct._id, quantity }], mc, '', 'qr', '', coupon);
     const order = (res && (res.order || res.data)) || res;
     if (!order) throw new Error('Không nhận được dữ liệu đơn hàng từ máy chủ.');
 

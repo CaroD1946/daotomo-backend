@@ -7,6 +7,7 @@
   <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/global.css?v=2.8">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     .admin-wrap { max-width: 1280px; margin: 0 auto; padding: 2rem 1.25rem 3.5rem; }
     .admin-header {
@@ -310,14 +311,80 @@
       </div>
 
       <div class="tab-bar">
-        <button class="tab-btn active" onclick="switchTab('products')">📦 Sản phẩm</button>
+        <button class="tab-btn active" onclick="switchTab('analytics')">📊 Thống kê</button>
+        <button class="tab-btn" onclick="switchTab('products')">📦 Sản phẩm</button>
         <button class="tab-btn" onclick="switchTab('orders')">🧾 Đơn hàng</button>
+        <button class="tab-btn" onclick="switchTab('coupons')">🎟️ Mã giảm giá</button>
         <button class="tab-btn" onclick="switchTab('users')">👥 Tài khoản</button>
         <button class="tab-btn" onclick="switchTab('tickets')">🎫 Ticket Hỗ Trợ</button>
+        <button class="tab-btn" onclick="switchTab('announcement')">📢 Banner Sự Kiện</button>
+      </div>
+
+      <!-- ANALYTICS TAB -->
+      <div class="tab-panel active" id="tab-analytics">
+        <!-- KPI Cards -->
+        <div class="stats-grid" id="analytics-kpis" style="margin-bottom:2rem">
+          <div class="stat-card">
+            <span class="num" id="kpi-revenue" style="color:#22d3ee">0đ</span>
+            <span class="lbl">Tổng Doanh Thu</span>
+          </div>
+          <div class="stat-card">
+            <span class="num" id="kpi-paid-orders" style="color:#34d399">0</span>
+            <span class="lbl">Đơn Đã Thanh Toán</span>
+          </div>
+          <div class="stat-card">
+            <span class="num" id="kpi-pending-orders" style="color:#f59e0b">0</span>
+            <span class="lbl">Đơn Chờ Quét QR</span>
+          </div>
+          <div class="stat-card">
+            <span class="num" id="kpi-users" style="color:#a855f7">0</span>
+            <span class="lbl">Người Dùng (Đã liên kết: <span id="kpi-linked-users">0</span>)</span>
+          </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;margin-bottom:2rem" id="charts-container-grid">
+          <div class="form-card" style="margin-bottom:0">
+            <h2 style="font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem">
+              <span>📈</span> Doanh Thu 7 Ngày Gần Nhất
+            </h2>
+            <div style="position:relative;height:260px">
+              <canvas id="chart-revenue-7days"></canvas>
+            </div>
+          </div>
+          <div class="form-card" style="margin-bottom:0">
+            <h2 style="font-size:1.1rem;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem">
+              <span>🍩</span> Trạng Thái Đơn Hàng
+            </h2>
+            <div style="position:relative;height:260px">
+              <canvas id="chart-order-status"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Selling Products Table -->
+        <div class="table-wrap">
+          <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);font-weight:800;font-size:1.05rem;color:#fff;display:flex;align-items:center;gap:0.5rem">
+            <span>🔥</span> Top 5 Sản Phẩm Bán Chạy Nhất
+          </div>
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Sản phẩm</th>
+                <th>Danh mục</th>
+                <th>Số lượng bán</th>
+                <th>Doanh số</th>
+              </tr>
+            </thead>
+            <tbody id="top-products-tbody">
+              <tr><td colspan="4" style="text-align:center;padding:2rem;color:var(--text-muted)">Đang tải thống kê...</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <!-- PRODUCTS TAB -->
-      <div class="tab-panel active" id="tab-products">
+      <div class="tab-panel" id="tab-products">
         <!-- Add product form -->
         <div class="form-card">
           <h2>➕ Thêm sản phẩm mới</h2>
@@ -567,6 +634,185 @@
         </div>
       </div>
 
+      <!-- COUPONS TAB -->
+      <div class="tab-panel" id="tab-coupons">
+        <!-- Add Coupon Form -->
+        <div class="form-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+            <h2 style="margin:0;display:flex;align-items:center;gap:0.5rem">
+              <span>🎟️</span> Tạo Mã Giảm Giá Mới
+            </h2>
+            <span style="font-size:0.8rem;color:var(--text-muted)">Hỗ trợ giảm theo % hoặc trừ thẳng VNĐ</span>
+          </div>
+          <div id="coupon-form-msg"></div>
+          <form id="create-coupon-form" onsubmit="handleCreateCoupon(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Mã Code (In hoa tự động) *</label>
+                <input class="input" type="text" id="cp-code" placeholder="VD: CHAOMUNG, TET2026, VIP50" required style="font-weight:700;letter-spacing:1px;text-transform:uppercase" oninput="this.value = this.value.toUpperCase()">
+              </div>
+              <div class="form-group">
+                <label>Mô tả ngắn</label>
+                <input class="input" type="text" id="cp-desc" placeholder="VD: Giảm 20% chào mừng sự kiện máy chủ">
+              </div>
+              <div class="form-group">
+                <label>Loại giảm giá *</label>
+                <select class="input" id="cp-type" onchange="updateCouponInputLabels()">
+                  <option value="percent">Giảm theo phần trăm (%)</option>
+                  <option value="fixed">Giảm tiền mặt cố định (VNĐ)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label id="cp-val-label">Mức giảm (% hoặc VNĐ) *</label>
+                <input class="input" type="number" id="cp-val" placeholder="VD: 20 (cho 20%)" min="1" required>
+              </div>
+              <div class="form-group">
+                <label>Đơn tối thiểu áp dụng (VNĐ)</label>
+                <input class="input" type="number" id="cp-min-order" placeholder="0 = Không yêu cầu" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label>Giảm tối đa (VNĐ - chỉ áp dụng %)</label>
+                <input class="input" type="number" id="cp-max-discount" placeholder="0 = Không giới hạn" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label>Giới hạn lượt dùng toàn server</label>
+                <input class="input" type="number" id="cp-max-uses" placeholder="0 = Không giới hạn lượt" min="0" value="0">
+              </div>
+              <div class="form-group">
+                <label>Hạn sử dụng</label>
+                <input class="input" type="datetime-local" id="cp-expires">
+              </div>
+              <div class="form-group">
+                <label>Trạng thái</label>
+                <select class="input" id="cp-active">
+                  <option value="1">🟢 Kích hoạt ngay</option>
+                  <option value="0">🔴 Tạm tắt</option>
+                </select>
+              </div>
+              <div class="form-group full" style="display:flex;gap:0.75rem;margin-top:0.5rem">
+                <button type="submit" class="btn btn-primary" id="btn-create-coupon" style="flex:1">
+                  ➕ Tạo Mã Giảm Giá
+                </button>
+                <button type="button" class="btn btn-ghost" onclick="document.getElementById('create-coupon-form').reset()">Làm mới</button>
+              </div>
+            </div>
+          </form>
+        </div>
+
+        <!-- Coupon List -->
+        <div class="form-card table-card">
+          <div class="table-toolbar">
+            <h2>🎟️ Danh sách Mã Giảm Giá</h2>
+            <button class="btn btn-ghost" onclick="loadCoupons()" style="padding:0.4rem 0.8rem;font-size:0.8rem">🔄 Làm mới</button>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Mã Coupon</th>
+                  <th>Loại & Mức giảm</th>
+                  <th>Đơn tối thiểu</th>
+                  <th>Lượt sử dụng</th>
+                  <th>Hạn dùng</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody id="coupons-tbody">
+                <tr><td colspan="7" class="no-data"><div class="spinner"></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANNOUNCEMENT TAB -->
+      <div class="tab-panel" id="tab-announcement">
+        <div class="form-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
+            <h2 style="margin:0;display:flex;align-items:center;gap:0.5rem">
+              <span>📢</span> Dải Banner Thông Báo Sự Kiện Trên Đỉnh Trang
+            </h2>
+            <span id="announcement-status-pill" class="stock-toggle in-stock">🟢 Đang hoạt động</span>
+          </div>
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:1.25rem;line-height:1.5">
+            Dải banner xuất hiện cố định ở đỉnh đầu trang của tất cả các trang web Đảo Tò Mò, thu hút sự chú ý của toàn bộ người chơi khi truy cập.
+          </p>
+          <div id="announcement-msg" style="margin-bottom:1rem"></div>
+
+          <!-- Live Preview Box -->
+          <div style="margin-bottom:1.5rem">
+            <label style="font-size:0.78rem;font-weight:700;color:var(--text-muted);margin-bottom:0.4rem;display:block">XEM TRƯỚC HIỂN THỊ THỰC TẾ (LIVE PREVIEW):</label>
+            <div id="announcement-live-preview" style="background:linear-gradient(90deg,#7c3aed,#2563eb,#06b6d4);color:#fff;padding:0.6rem 1rem;border-radius:10px;display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;font-size:0.85rem;font-weight:600;box-shadow:0 4px 15px rgba(124,58,237,0.3);transition:opacity 0.2s">
+              <span id="preview-badge" style="background:rgba(255,255,255,0.22);padding:2px 8px;border-radius:9999px;font-size:0.72rem;letter-spacing:0.5px;font-weight:800">Sự Kiện Open</span>
+              <span id="preview-text">🎉 Đăng ký tài khoản ngay hôm nay để nhận quà tri ân đặc biệt khi Server chính thức Open Beta!</span>
+              <a id="preview-btn" href="#" style="background:#fff;color:#7c3aed;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:800;text-decoration:none">Xem Chi Tiết →</a>
+            </div>
+          </div>
+
+          <form id="announcement-form" onsubmit="handleSaveAnnouncement(event)">
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Trạng thái hiển thị banner *</label>
+                <select class="input" id="ann-enabled" onchange="updateAnnouncementPreview()">
+                  <option value="1">🟢 Bật thanh banner (Hiển thị tới người chơi)</option>
+                  <option value="0">🔴 Tắt banner (Ẩn hoàn toàn)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Nhãn Badge nổi bật (Ngắn gọn) *</label>
+                <input class="input" type="text" id="ann-badge" placeholder="VD: SỰ KIỆN HOT, OPEN BETA" value="Sự Kiện Open" required oninput="updateAnnouncementPreview()">
+              </div>
+              <div class="form-group full">
+                <label>Nội dung thông báo sự kiện *</label>
+                <input class="input" type="text" id="ann-text" placeholder="VD: Đăng ký tài khoản trước khi server open để nhận quà tân thủ độc quyền!" required oninput="updateAnnouncementPreview()">
+              </div>
+              <div class="form-group">
+                <label>Đường dẫn khi bấm (URL / Trang đích)</label>
+                <input class="input" type="text" id="ann-link" placeholder="/html/Account.html hoặc /html/Register.html" value="/html/Account.html" oninput="updateAnnouncementPreview()">
+              </div>
+              <div class="form-group full" style="margin-top:0.5rem">
+                <button type="submit" class="btn btn-primary" id="btn-save-announcement" style="width:100%;font-weight:700">
+                  💾 Lưu Cấu Hình Banner Sự Kiện
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Coupon Usages Modal -->
+<div class="modal-overlay" id="coupon-usages-modal">
+  <div class="modal" style="max-width:680px;text-align:left">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:1px solid var(--border);padding-bottom:0.75rem">
+      <h2 style="margin:0;font-size:1.15rem;display:flex;align-items:center;gap:0.5rem">
+        <span>📋</span> Lịch sử sử dụng mã: <span id="modal-coupon-code" style="color:var(--lagoon);font-family:monospace"></span>
+      </h2>
+      <button class="btn btn-ghost" onclick="closeCouponUsagesModal()" style="font-size:1.1rem;padding:0.2rem 0.5rem">✕</button>
+    </div>
+    <div id="coupon-usages-summary" style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.75rem"></div>
+    <div class="table-wrap" style="max-height:360px;overflow-y:auto">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Người dùng</th>
+            <th>Tên Minecraft</th>
+            <th>Mã đơn hàng</th>
+            <th>Số tiền giảm</th>
+            <th>Thời gian</th>
+          </tr>
+        </thead>
+        <tbody id="coupon-usages-tbody">
+          <tr><td colspan="5" class="no-data"><div class="spinner"></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-ghost" onclick="closeCouponUsagesModal()">Đóng</button>
     </div>
   </div>
 </div>
@@ -746,6 +992,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     document.getElementById('admin-content').classList.remove('hidden');
+    loadAnalytics();
     loadProducts();
     // Load background stats
     loadOrders();
@@ -756,16 +1003,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 /* ── Tabs ── */
 function switchTab(name) {
-  const tabs = ['products', 'orders', 'users', 'tickets'];
+  const tabs = ['analytics', 'products', 'orders', 'coupons', 'users', 'tickets', 'announcement'];
   document.querySelectorAll('.tab-btn').forEach((b, i) => b.classList.toggle('active', tabs[i] === name));
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
   const panel = document.getElementById('tab-' + name);
   if (panel) panel.classList.add('active');
 
-  if (name === 'orders') loadOrders();
-  if (name === 'users') loadUsers();
+  if (name === 'analytics') loadAnalytics();
   if (name === 'products') loadProducts();
+  if (name === 'orders') loadOrders();
+  if (name === 'coupons') loadCoupons();
+  if (name === 'users') loadUsers();
   if (name === 'tickets') loadTickets();
+  if (name === 'announcement') loadAnnouncementSettings();
 }
 
 /* ── Image preview ── */
@@ -1621,6 +1871,456 @@ document.getElementById('proof-modal').addEventListener('click', e => {
 document.getElementById('password-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closePasswordModal();
 });
+const cpModal = document.getElementById('coupon-usages-modal');
+if (cpModal) {
+  cpModal.addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeCouponUsagesModal();
+  });
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   VISUAL ANALYTICS & CHARTS (Chart.js)
+══════════════════════════════════════════════════════════════════ */
+let revenueChartInstance = null;
+let orderStatusChartInstance = null;
+
+async function loadAnalytics() {
+  try {
+    const res = await api.getAdminAnalytics();
+    if (!res || !res.summary) return;
+
+    // Update KPI Cards
+    const kpiRev = document.getElementById('kpi-revenue');
+    const kpiPaid = document.getElementById('kpi-paid-orders');
+    const kpiPending = document.getElementById('kpi-pending-orders');
+    const kpiUsers = document.getElementById('kpi-users');
+    const kpiLinked = document.getElementById('kpi-linked-users');
+
+    if (kpiRev) kpiRev.textContent = Number(res.summary.total_revenue || 0).toLocaleString('vi-VN') + 'đ';
+    if (kpiPaid) kpiPaid.textContent = res.summary.paid_orders || 0;
+    if (kpiPending) kpiPending.textContent = res.summary.pending_orders || 0;
+    if (kpiUsers) kpiUsers.textContent = res.summary.total_users || 0;
+    if (kpiLinked) kpiLinked.textContent = res.summary.linked_users || 0;
+
+    // 1. Chart: 7-day Revenue
+    const revCanvas = document.getElementById('chart-revenue-7days');
+    if (revCanvas && res.revenue_7days && typeof Chart !== 'undefined') {
+      if (revenueChartInstance) revenueChartInstance.destroy();
+
+      const labels = res.revenue_7days.map(d => d.label);
+      const data = res.revenue_7days.map(d => d.revenue);
+
+      revenueChartInstance = new Chart(revCanvas, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Doanh thu (VNĐ)',
+            data: data,
+            borderColor: '#22d3ee',
+            backgroundColor: 'rgba(34, 211, 238, 0.12)',
+            borderWidth: 2.5,
+            fill: true,
+            tension: 0.35,
+            pointBackgroundColor: '#22d3ee',
+            pointBorderColor: '#0f172a',
+            pointBorderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  return 'Doanh thu: ' + Number(ctx.parsed.y).toLocaleString('vi-VN') + 'đ';
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 11 } }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: {
+                color: '#94a3b8',
+                font: { size: 11 },
+                callback: function(val) {
+                  return val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val);
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Chart: Order Status Structure
+    const statusCanvas = document.getElementById('chart-order-status');
+    if (statusCanvas && res.order_statuses && typeof Chart !== 'undefined') {
+      if (orderStatusChartInstance) orderStatusChartInstance.destroy();
+
+      orderStatusChartInstance = new Chart(statusCanvas, {
+        type: 'doughnut',
+        data: {
+          labels: res.order_statuses.map(s => s.label),
+          datasets: [{
+            data: res.order_statuses.map(s => s.value),
+            backgroundColor: res.order_statuses.map(s => s.color),
+            borderColor: '#0f172a',
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: '65%',
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: {
+                color: '#e2e8f0',
+                font: { size: 11 },
+                boxWidth: 12,
+                padding: 10
+              }
+            }
+          }
+        }
+      });
+    }
+
+    // 3. Top 5 Selling Products
+    const topTbody = document.getElementById('top-products-tbody');
+    if (topTbody) {
+      if (!res.top_products || res.top_products.length === 0) {
+        topTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Chưa có dữ liệu sản phẩm bán chạy</td></tr>';
+      } else {
+        topTbody.innerHTML = res.top_products.map((p, idx) => `
+          <tr>
+            <td style="font-weight:700;display:flex;align-items:center;gap:0.6rem">
+              <span style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:${idx === 0 ? '#f59e0b' : (idx === 1 ? '#94a3b8' : (idx === 2 ? '#b45309' : 'rgba(255,255,255,0.08)'))};color:#fff;font-size:0.75rem;font-weight:800">${idx + 1}</span>
+              <span>${escapeTicketHtml(p.name)}</span>
+            </td>
+            <td><span class="badge badge-purple" style="font-size:0.7rem">${escapeTicketHtml(p.category)}</span></td>
+            <td style="font-weight:700;color:#38bdf8">${p.total_qty} lượt</td>
+            <td style="font-weight:800;color:#34d399">${Number(p.total_sales || 0).toLocaleString('vi-VN')}đ</td>
+          </tr>
+        `).join('');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load analytics:', e);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   COUPONS MANAGEMENT
+══════════════════════════════════════════════════════════════════ */
+function updateCouponInputLabels() {
+  const type = document.getElementById('cp-type').value;
+  const label = document.getElementById('cp-val-label');
+  const input = document.getElementById('cp-val');
+  if (type === 'percent') {
+    label.textContent = 'Mức giảm (%) *';
+    input.placeholder = 'VD: 20 (cho 20%)';
+    input.max = 100;
+  } else {
+    label.textContent = 'Mức giảm (VNĐ) *';
+    input.placeholder = 'VD: 30000 (cho 30.000đ)';
+    input.removeAttribute('max');
+  }
+}
+
+let couponsList = [];
+
+async function loadCoupons() {
+  const tbody = document.getElementById('coupons-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="no-data"><div class="spinner"></div></td></tr>';
+
+  try {
+    const res = await api.getAdminCoupons();
+    couponsList = res.data || [];
+    renderCoupons(couponsList);
+  } catch (e) {
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:1.5rem;color:#f87171">❌ Lỗi tải danh sách coupon: ${escapeTicketHtml(e.message)}</td></tr>`;
+  }
+}
+
+function renderCoupons(list) {
+  const tbody = document.getElementById('coupons-tbody');
+  if (!tbody) return;
+
+  if (!list || list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="no-data">Chưa có mã giảm giá nào. Hãy tạo mã mới ở form trên!</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(c => {
+    const isPercent = c.discount_type === 'percent';
+    const discountStr = isPercent
+      ? `<span style="font-weight:700;color:#38bdf8">${c.discount_value}%</span>${c.max_discount > 0 ? ` <small style="color:var(--text-muted)">(Tối đa ${Number(c.max_discount).toLocaleString('vi-VN')}đ)</small>` : ''}`
+      : `<span style="font-weight:700;color:#34d399">${Number(c.discount_value).toLocaleString('vi-VN')}đ</span>`;
+
+    const minOrderStr = c.min_order_amount > 0 ? Number(c.min_order_amount).toLocaleString('vi-VN') + 'đ' : '<span style="color:var(--text-muted)">Không yêu cầu</span>';
+    const usageStr = `${c.used_count || 0} / ${c.max_uses > 0 ? c.max_uses : '∞'}`;
+    const expiresStr = c.expires_at ? new Date(c.expires_at).toLocaleDateString('vi-VN') : '<span style="color:var(--text-muted)">Vĩnh viễn</span>';
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font-family:monospace;font-weight:800;color:var(--lagoon);background:rgba(34,211,238,0.1);padding:2px 8px;border-radius:4px;display:inline-block;width:max-content">${escapeTicketHtml(c.code)}</span>
+            ${c.description ? `<small style="color:var(--text-muted);font-size:0.75rem">${escapeTicketHtml(c.description)}</small>` : ''}
+          </div>
+        </td>
+        <td>${discountStr}</td>
+        <td>${minOrderStr}</td>
+        <td style="font-weight:700">${usageStr}</td>
+        <td>${expiresStr}</td>
+        <td>
+          <button class="stock-toggle ${c.is_active ? 'in-stock' : 'out-stock'}" onclick="toggleCoupon(${c.id}, ${!c.is_active})" title="Bấm để bật/tắt mã">
+            ${c.is_active ? '🟢 Đang bật' : '🔴 Đã tắt'}
+          </button>
+        </td>
+        <td>
+          <div style="display:flex;gap:0.4rem;align-items:center">
+            <button class="btn btn-ghost" onclick="showCouponUsages(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.3rem 0.6rem;font-size:0.75rem" title="Xem danh sách người đã dùng mã này">
+              👥 Xem ai đã dùng (${c.usages_count || c.used_count || 0})
+            </button>
+            <button class="btn btn-danger" onclick="deleteCoupon(${c.id}, '${escapeTicketHtml(c.code)}')" style="padding:0.3rem 0.55rem;font-size:0.75rem" title="Xóa mã coupon">
+              🗑️
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+async function handleCreateCoupon(e) {
+  e.preventDefault();
+  const msgBox = document.getElementById('coupon-form-msg');
+  const btn = document.getElementById('btn-create-coupon');
+
+  const code = document.getElementById('cp-code').value.trim().toUpperCase();
+  const desc = document.getElementById('cp-desc').value.trim();
+  const type = document.getElementById('cp-type').value;
+  const val = parseFloat(document.getElementById('cp-val').value);
+  const minOrder = parseFloat(document.getElementById('cp-min-order').value) || 0;
+  const maxDiscount = parseFloat(document.getElementById('cp-max-discount').value) || 0;
+  const maxUses = parseInt(document.getElementById('cp-max-uses').value) || 0;
+  const expiresAt = document.getElementById('cp-expires').value || null;
+  const isActive = document.getElementById('cp-active').value === '1';
+
+  if (!code || isNaN(val) || val <= 0) {
+    msgBox.innerHTML = '<div class="alert alert-error" style="margin-bottom:1rem">⚠️ Vui lòng nhập đầy đủ Mã code và Mức giảm hợp lệ!</div>';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang tạo mã...';
+  msgBox.innerHTML = '';
+
+  try {
+    const payload = {
+      code,
+      description: desc,
+      discount_type: type,
+      discount_value: val,
+      min_order_amount: minOrder,
+      max_discount: maxDiscount,
+      max_uses: maxUses,
+      expires_at: expiresAt,
+      is_active: isActive
+    };
+
+    const res = await api.createAdminCoupon(payload);
+    if (window.SoundFX) SoundFX.playSuccess();
+    if (typeof api.showToast === 'function') api.showToast(res.message || 'Tạo coupon thành công!', 'success');
+    msgBox.innerHTML = `<div class="alert alert-success" style="margin-bottom:1rem">✅ ${escapeTicketHtml(res.message)}</div>`;
+    document.getElementById('create-coupon-form').reset();
+    loadCoupons();
+  } catch (err) {
+    if (window.SoundFX) SoundFX.playError();
+    msgBox.innerHTML = `<div class="alert alert-error" style="margin-bottom:1rem">❌ ${escapeTicketHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '➕ Tạo Mã Giảm Giá';
+  }
+}
+
+async function toggleCoupon(id, active) {
+  try {
+    const res = await api.updateAdminCoupon(id, { is_active: active });
+    if (window.SoundFX) SoundFX.playSuccess();
+    if (typeof api.showToast === 'function') api.showToast(res.message || 'Cập nhật trạng thái thành công!', 'success');
+    loadCoupons();
+  } catch (err) {
+    if (window.SoundFX) SoundFX.playError();
+    if (typeof api.showToast === 'function') api.showToast(err.message, 'error');
+    else alert('Lỗi: ' + err.message);
+  }
+}
+
+async function deleteCoupon(id, code) {
+  if (!confirm(`Bạn có chắc chắn muốn xoá mã giảm giá "${code}" không?`)) return;
+  try {
+    const res = await api.deleteAdminCoupon(id);
+    if (window.SoundFX) SoundFX.playSuccess();
+    if (typeof api.showToast === 'function') api.showToast(res.message || 'Đã xoá mã giảm giá!', 'success');
+    loadCoupons();
+  } catch (err) {
+    if (window.SoundFX) SoundFX.playError();
+    if (typeof api.showToast === 'function') api.showToast(err.message, 'error');
+    else alert('Lỗi: ' + err.message);
+  }
+}
+
+async function showCouponUsages(id, code) {
+  const modal = document.getElementById('coupon-usages-modal');
+  const codeEl = document.getElementById('modal-coupon-code');
+  const summaryEl = document.getElementById('coupon-usages-summary');
+  const tbody = document.getElementById('coupon-usages-tbody');
+
+  codeEl.textContent = code;
+  summaryEl.textContent = 'Đang tải dữ liệu lịch sử...';
+  tbody.innerHTML = '<tr><td colspan="5" class="no-data"><div class="spinner"></div></td></tr>';
+  modal.classList.add('open');
+
+  try {
+    const res = await api.getAdminCouponUsages(id);
+    const usages = res.data || [];
+    summaryEl.textContent = `Tổng cộng: ${res.total_usages || usages.length} lượt sử dụng mã này.`;
+
+    if (usages.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="no-data">Chưa có người dùng nào sử dụng mã này.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = usages.map(u => {
+      const usr = u.user || {};
+      const ord = u.order || {};
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:700">${escapeTicketHtml(usr.name || usr.username || 'Khách')}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted)">${escapeTicketHtml(usr.email || '')}</div>
+          </td>
+          <td>
+            <span style="font-weight:700;color:var(--lagoon)">${escapeTicketHtml(usr.minecraft_username || 'Chưa liên kết')}</span>
+          </td>
+          <td>
+            <span style="font-family:monospace;font-weight:700">${escapeTicketHtml(ord.order_code || ('#' + ord.id))}</span>
+          </td>
+          <td style="font-weight:800;color:#34d399">
+            -${Number(u.discount_amount || 0).toLocaleString('vi-VN')}đ
+          </td>
+          <td style="font-size:0.75rem;color:var(--text-muted)">
+            ${new Date(u.created_at).toLocaleString('vi-VN')}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:1.5rem;color:#f87171">❌ Lỗi: ${escapeTicketHtml(err.message)}</td></tr>`;
+  }
+}
+
+function closeCouponUsagesModal() {
+  document.getElementById('coupon-usages-modal').classList.remove('open');
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ANNOUNCEMENT BANNER MANAGEMENT
+══════════════════════════════════════════════════════════════════ */
+async function loadAnnouncementSettings() {
+  const msgBox = document.getElementById('announcement-msg');
+  if (msgBox) msgBox.innerHTML = '';
+
+  try {
+    const res = await api.getAnnouncement();
+    if (res) {
+      document.getElementById('ann-enabled').value = res.enabled ? '1' : '0';
+      document.getElementById('ann-badge').value = res.badge || 'Sự Kiện';
+      document.getElementById('ann-text').value = res.text || '';
+      document.getElementById('ann-link').value = res.link || '/html/Account.html';
+      updateAnnouncementPreview();
+    }
+  } catch (err) {
+    console.error('Failed to load announcement:', err);
+  }
+}
+
+function updateAnnouncementPreview() {
+  const enabled = document.getElementById('ann-enabled')?.value === '1';
+  const badge = document.getElementById('ann-badge')?.value?.trim() || 'Sự Kiện';
+  const text = document.getElementById('ann-text')?.value?.trim() || 'Nội dung thông báo';
+  const link = document.getElementById('ann-link')?.value?.trim() || '#';
+
+  const previewBadge = document.getElementById('preview-badge');
+  const previewText = document.getElementById('preview-text');
+  const previewBtn = document.getElementById('preview-btn');
+  const previewBox = document.getElementById('announcement-live-preview');
+  const statusPill = document.getElementById('announcement-status-pill');
+
+  if (previewBadge) previewBadge.textContent = badge;
+  if (previewText) previewText.textContent = text;
+  if (previewBtn) previewBtn.href = link;
+
+  if (statusPill) {
+    statusPill.className = 'stock-toggle ' + (enabled ? 'in-stock' : 'out-stock');
+    statusPill.textContent = enabled ? '🟢 Đang hoạt động' : '🔴 Đang tắt';
+  }
+
+  if (previewBox) {
+    previewBox.style.opacity = enabled ? '1' : '0.45';
+  }
+}
+
+async function handleSaveAnnouncement(e) {
+  e.preventDefault();
+  const msgBox = document.getElementById('announcement-msg');
+  const btn = document.getElementById('btn-save-announcement');
+
+  const enabled = document.getElementById('ann-enabled').value === '1';
+  const badge = document.getElementById('ann-badge').value.trim();
+  const text = document.getElementById('ann-text').value.trim();
+  const link = document.getElementById('ann-link').value.trim();
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Đang lưu cấu hình...';
+  msgBox.innerHTML = '';
+
+  try {
+    const res = await api.updateAdminAnnouncement({
+      enabled,
+      badge,
+      text,
+      link
+    });
+
+    if (window.SoundFX) SoundFX.playSuccess();
+    if (typeof api.showToast === 'function') api.showToast(res.message || 'Lưu banner thành công!', 'success');
+    msgBox.innerHTML = `<div class="alert alert-success" style="margin:0">✅ ${escapeTicketHtml(res.message)}</div>`;
+    updateAnnouncementPreview();
+  } catch (err) {
+    if (window.SoundFX) SoundFX.playError();
+    msgBox.innerHTML = `<div class="alert alert-error" style="margin:0">❌ ${escapeTicketHtml(err.message)}</div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '💾 Lưu Cấu Hình Banner Sự Kiện';
+  }
+}
 </script>
 </body>
 </html>
