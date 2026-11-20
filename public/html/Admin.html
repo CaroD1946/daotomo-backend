@@ -7,7 +7,7 @@
   <link rel="icon" type="image/x-icon" href="/img/favicon.ico">
   <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700;800&family=Be+Vietnam+Pro:wght@300;400;500;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/global.css?v=2.8">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="/js/chart.min.js" onerror="this.onerror=null;this.src='https://cdn.jsdelivr.net/npm/chart.js';"></script>
   <style>
     .admin-wrap { max-width: 1280px; margin: 0 auto; padding: 2rem 1.25rem 3.5rem; }
     .admin-header {
@@ -285,6 +285,43 @@
 
     .no-data { text-align:center; padding:3rem; color:var(--text-muted); font-size:0.875rem; }
 
+    
+    /* Analytics & KPI Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.25rem;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg, 12px);
+      padding: 1.35rem 1.45rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+      box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+      transition: border-color var(--ease), transform var(--ease);
+    }
+    .stat-card:hover {
+      border-color: rgba(56, 189, 248, 0.45);
+      transform: translateY(-2px);
+    }
+    .stat-card .num {
+      font-family: var(--font-mono, monospace);
+      font-size: 1.85rem;
+      font-weight: 800;
+      line-height: 1.2;
+      letter-spacing: -0.5px;
+    }
+    .stat-card .lbl {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
     /* Modals */
     .modal-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); z-index:2000; align-items:center; justify-content:center; padding:1rem; }
     .modal-overlay.open { display:flex; }
@@ -365,7 +402,7 @@
         <!-- KPI Cards -->
         <div class="stats-grid" id="analytics-kpis" style="margin-bottom:2rem">
           <div class="stat-card">
-            <span class="num" id="kpi-revenue" style="color:#22d3ee">0đ</span>
+            <span class="num" id="analytics-kpi-revenue" style="color:#22d3ee">0đ</span>
             <span class="lbl">Tổng Doanh Thu</span>
           </div>
           <div class="stat-card">
@@ -1988,18 +2025,28 @@ let revenueChartInstance = null;
 let orderStatusChartInstance = null;
 
 async function loadAnalytics() {
+  const topTbody = document.getElementById('top-products-tbody');
   try {
     const res = await api.getAdminAnalytics();
-    if (!res || !res.summary) return;
+    if (!res || !res.summary) {
+      if (topTbody) {
+        topTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#f87171">⚠️ Không thể tải dữ liệu thống kê từ máy chủ. <button onclick="loadAnalytics()" class="btn btn-ghost" style="padding:2px 8px;font-size:0.75rem;margin-left:8px">🔄 Thử lại</button></td></tr>';
+      }
+      return;
+    }
 
-    // Update KPI Cards
-    const kpiRev = document.getElementById('kpi-revenue');
+    // Update Top Metric Summary Cards
+    const topKpiRev = document.getElementById('kpi-revenue');
+    if (topKpiRev) topKpiRev.textContent = Number(res.summary.total_revenue || 0).toLocaleString('vi-VN') + 'đ';
+
+    // Update Analytics Tab KPI Cards
+    const tabKpiRev = document.getElementById('analytics-kpi-revenue');
     const kpiPaid = document.getElementById('kpi-paid-orders');
     const kpiPending = document.getElementById('kpi-pending-orders');
     const kpiUsers = document.getElementById('kpi-users');
     const kpiLinked = document.getElementById('kpi-linked-users');
 
-    if (kpiRev) kpiRev.textContent = Number(res.summary.total_revenue || 0).toLocaleString('vi-VN') + 'đ';
+    if (tabKpiRev) tabKpiRev.textContent = Number(res.summary.total_revenue || 0).toLocaleString('vi-VN') + 'đ';
     if (kpiPaid) kpiPaid.textContent = res.summary.paid_orders || 0;
     if (kpiPending) kpiPending.textContent = res.summary.pending_orders || 0;
     if (kpiUsers) kpiUsers.textContent = res.summary.total_users || 0;
@@ -2007,102 +2054,111 @@ async function loadAnalytics() {
 
     // 1. Chart: 7-day Revenue
     const revCanvas = document.getElementById('chart-revenue-7days');
-    if (revCanvas && res.revenue_7days && typeof Chart !== 'undefined') {
-      if (revenueChartInstance) revenueChartInstance.destroy();
+    if (revCanvas) {
+      if (typeof Chart === 'undefined') {
+        const parent = revCanvas.parentElement;
+        if (parent) parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.85rem">⚠️ Thư viện biểu đồ chưa tải xong</div>';
+      } else if (res.revenue_7days) {
+        if (revenueChartInstance) revenueChartInstance.destroy();
 
-      const labels = res.revenue_7days.map(d => d.label);
-      const data = res.revenue_7days.map(d => d.revenue);
+        const labels = res.revenue_7days.map(d => d.label);
+        const data = res.revenue_7days.map(d => d.revenue);
 
-      revenueChartInstance = new Chart(revCanvas, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Doanh thu (VNĐ)',
-            data: data,
-            borderColor: '#22d3ee',
-            backgroundColor: 'rgba(34, 211, 238, 0.12)',
-            borderWidth: 2.5,
-            fill: true,
-            tension: 0.35,
-            pointBackgroundColor: '#22d3ee',
-            pointBorderColor: '#0f172a',
-            pointBorderWidth: 2,
-            pointRadius: 4,
-            pointHoverRadius: 6
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: function(ctx) {
-                  return 'Doanh thu: ' + Number(ctx.parsed.y).toLocaleString('vi-VN') + 'đ';
+        revenueChartInstance = new Chart(revCanvas, {
+          type: 'line',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Doanh thu (VNĐ)',
+              data: data,
+              borderColor: '#22d3ee',
+              backgroundColor: 'rgba(34, 211, 238, 0.12)',
+              borderWidth: 2.5,
+              fill: true,
+              tension: 0.35,
+              pointBackgroundColor: '#22d3ee',
+              pointBorderColor: '#0f172a',
+              pointBorderWidth: 2,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: function(ctx) {
+                    return 'Doanh thu: ' + Number(ctx.parsed.y).toLocaleString('vi-VN') + 'đ';
+                  }
                 }
               }
-            }
-          },
-          scales: {
-            x: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#94a3b8', font: { size: 11 } }
             },
-            y: {
-              beginAtZero: true,
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: {
-                color: '#94a3b8',
-                font: { size: 11 },
-                callback: function(val) {
-                  return val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val);
+            scales: {
+              x: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#94a3b8', font: { size: 11 } }
+              },
+              y: {
+                beginAtZero: true,
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: {
+                  color: '#94a3b8',
+                  font: { size: 11 },
+                  callback: function(val) {
+                    return val >= 1000000 ? (val / 1000000).toFixed(1) + 'M' : (val >= 1000 ? (val / 1000).toFixed(0) + 'k' : val);
+                  }
                 }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
 
     // 2. Chart: Order Status Structure
     const statusCanvas = document.getElementById('chart-order-status');
-    if (statusCanvas && res.order_statuses && typeof Chart !== 'undefined') {
-      if (orderStatusChartInstance) orderStatusChartInstance.destroy();
+    if (statusCanvas) {
+      if (typeof Chart === 'undefined') {
+        const parent = statusCanvas.parentElement;
+        if (parent) parent.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:0.85rem">⚠️ Thư viện biểu đồ chưa tải xong</div>';
+      } else if (res.order_statuses) {
+        if (orderStatusChartInstance) orderStatusChartInstance.destroy();
 
-      orderStatusChartInstance = new Chart(statusCanvas, {
-        type: 'doughnut',
-        data: {
-          labels: res.order_statuses.map(s => s.label),
-          datasets: [{
-            data: res.order_statuses.map(s => s.value),
-            backgroundColor: res.order_statuses.map(s => s.color),
-            borderColor: '#0f172a',
-            borderWidth: 2
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          cutout: '65%',
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                color: '#e2e8f0',
-                font: { size: 11 },
-                boxWidth: 12,
-                padding: 10
+        orderStatusChartInstance = new Chart(statusCanvas, {
+          type: 'doughnut',
+          data: {
+            labels: res.order_statuses.map(s => s.label),
+            datasets: [{
+              data: res.order_statuses.map(s => s.value),
+              backgroundColor: res.order_statuses.map(s => s.color),
+              borderColor: '#0f172a',
+              borderWidth: 2
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  color: '#e2e8f0',
+                  font: { size: 11 },
+                  boxWidth: 12,
+                  padding: 10
+                }
               }
             }
           }
-        }
-      });
+        });
+      }
     }
 
     // 3. Top 5 Selling Products
-    const topTbody = document.getElementById('top-products-tbody');
     if (topTbody) {
       if (!res.top_products || res.top_products.length === 0) {
         topTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:var(--text-muted)">Chưa có dữ liệu sản phẩm bán chạy</td></tr>';
@@ -2122,6 +2178,9 @@ async function loadAnalytics() {
     }
   } catch (e) {
     console.error('Failed to load analytics:', e);
+    if (topTbody) {
+      topTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:1.5rem;color:#f87171">⚠️ Lỗi kết nối khi tải thống kê (' + (e.message || 'Lỗi mạng') + '). <button onclick="loadAnalytics()" class="btn btn-ghost" style="padding:2px 8px;font-size:0.75rem;margin-left:8px">🔄 Thử lại</button></td></tr>';
+    }
   }
 }
 

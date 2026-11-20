@@ -32,24 +32,25 @@ class AdminAnalyticsController extends Controller
             ->where('minecraft_username', '!=', '')
             ->count();
 
-        // 2. Doanh thu 7 ngày gần nhất (nhóm theo từng ngày)
+        // 2. Doanh thu 7 ngày gần nhất (nhóm theo từng ngày - 100% Database Agnostic cho SQLite, MySQL, PostgreSQL)
         $sevenDaysAgo = now()->subDays(6)->startOfDay();
-        $raw7Days = Order::whereIn('order_status', ['paid', 'delivered'])
+        $recentPaidOrders = Order::whereIn('order_status', ['paid', 'delivered'])
             ->where('created_at', '>=', $sevenDaysAgo)
-            ->selectRaw("substr(created_at, 1, 10) as day, sum(total_amount) as revenue, count(id) as count")
-            ->groupBy('day')
-            ->orderBy('day', 'asc')
-            ->get()
-            ->keyBy('day');
+            ->get(['created_at', 'total_amount']);
+
+        $revenueGrouped = $recentPaidOrders->groupBy(function ($order) {
+            return $order->created_at ? $order->created_at->format('Y-m-d') : '';
+        });
 
         $revenue7Days = [];
         for ($i = 6; $i >= 0; $i--) {
             $d = now()->subDays($i)->format('Y-m-d');
+            $group = $revenueGrouped->get($d, collect());
             $revenue7Days[] = [
                 'date' => $d,
                 'label' => now()->subDays($i)->format('d/m'),
-                'revenue' => isset($raw7Days[$d]) ? (float) $raw7Days[$d]->revenue : 0.0,
-                'orders_count' => isset($raw7Days[$d]) ? (int) $raw7Days[$d]->count : 0,
+                'revenue' => (float) $group->sum('total_amount'),
+                'orders_count' => (int) $group->count(),
             ];
         }
 
@@ -62,8 +63,9 @@ class AdminAnalyticsController extends Controller
 
         // 4. Top 5 sản phẩm bán chạy nhất
         $topProductsRaw = OrderItem::select('product_id', DB::raw('sum(quantity) as total_qty'), DB::raw('sum(subtotal) as total_sales'))
+            ->whereNotNull('product_id')
             ->groupBy('product_id')
-            ->orderBy('total_qty', 'desc')
+            ->orderByRaw('sum(quantity) desc')
             ->limit(5)
             ->get();
 
