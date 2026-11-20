@@ -179,7 +179,7 @@ class MinecraftBridgeTest extends TestCase
         $this->assertDatabaseHas('game_delivery_queue', [
             'game_username' => 'SteveTester',
             'type' => 'rank',
-            'command' => 'lp user SteveTester parent add vip',
+            'command' => 'lp user SteveTester parent set master',
         ]);
 
         // 2. Unlink test player via bridge

@@ -460,10 +460,14 @@
     }
     body.cart-drawer-open .floating-cart-btn,
     body.cart-drawer-open #dtm-fab-widget,
-    body.cart-drawer-open .dtm-fab-widget {
+    body.cart-drawer-open .dtm-fab-widget,
+    body.modal-open .floating-cart-btn,
+    body.modal-open #dtm-fab-widget,
+    body.modal-open .dtm-fab-widget {
       opacity: 0 !important;
       pointer-events: none !important;
       visibility: hidden !important;
+      display: none !important;
       transform: scale(0.85) !important;
       transition: opacity 0.2s ease, transform 0.2s ease !important;
     }
@@ -503,9 +507,12 @@
       display: flex; flex-direction: column; gap: 0.75rem;
     }
     .cart-drawer-footer {
-      padding: 1.25rem 1.5rem;
+      padding: 1.1rem 1.35rem;
+      padding-bottom: max(1.25rem, env(safe-area-inset-bottom) + 0.85rem);
       border-top: 1px solid var(--border);
-      background: rgba(0,0,0,0.3);
+      background: rgba(10,14,26,0.98);
+      position: relative;
+      z-index: 10;
     }
     .cart-item {
       display: flex; align-items: center; gap: 0.85rem;
@@ -541,7 +548,7 @@
     /* Modal */
     .modal-overlay {
       display: none; position: fixed; inset: 0;
-      background: rgba(4,6,14,0.88); z-index: 2000;
+      background: rgba(4,6,14,0.88); z-index: 100010;
       align-items: center; justify-content: center;
       padding: 1rem; backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
@@ -1376,10 +1383,13 @@ function renderCartDrawer() {
         </div>`;
     } else {
       statusEl.innerHTML = `
-        <div style="background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);border-radius:8px;padding:0.6rem 0.75rem">
-          <div style="color:#fbbf24;font-size:0.8rem;font-weight:700">⚠️ Chưa liên kết Minecraft</div>
-          <p style="color:#cbd5e1;font-size:0.75rem;margin:2px 0 6px">Cần liên kết để giao đồ tự động.</p>
-          <a href="/html/Account.html?redirect=/html/Store.html" style="color:var(--lagoon);font-size:0.75rem;font-weight:700;text-decoration:underline">Liên kết ngay →</a>
+        <div style="background:rgba(34,211,238,0.08);border:1px solid rgba(34,211,238,0.25);border-radius:8px;padding:0.6rem 0.75rem">
+          <div style="color:var(--lagoon);font-size:0.8rem;font-weight:700;margin-bottom:0.35rem">🎮 Tên nhân vật Minecraft nhận đồ:</div>
+          <input type="text" id="cart-guest-mc" class="input" placeholder="VD: Steve, Alex..." oninput="handleCartMcInput()" style="width:100%;font-size:0.82rem;padding:0.45rem 0.6rem;font-family:var(--font-mono);box-sizing:border-box">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+            <span style="color:#94a3b8;font-size:0.72rem">Cần đúng nick in-game</span>
+            <a href="/html/Account.html?redirect=/html/Store.html" style="color:var(--accent);font-size:0.72rem;font-weight:600;text-decoration:underline">Đăng nhập</a>
+          </div>
         </div>`;
     }
   }
@@ -1398,8 +1408,9 @@ function renderCartDrawer() {
   }
 
   const hasInvalidItem = items.some(it => it.isOwnedOrHigher);
+  const guestMcVal = (document.getElementById('cart-guest-mc')?.value || '').trim();
   const checkoutBtn = document.getElementById('btn-cart-checkout');
-  if (checkoutBtn) checkoutBtn.disabled = (!linkedMc && !isGuestOrAdmin) || hasInvalidItem;
+  if (checkoutBtn) checkoutBtn.disabled = (!linkedMc && !guestMcVal && !isGuestOrAdmin) || hasInvalidItem;
 
   bodyEl.innerHTML = items.map(it => `
     <div class="cart-item" style="${it.isOwnedOrHigher ? 'border:1px solid rgba(239,68,68,0.45);background:rgba(239,68,68,0.06)' : ''}">
@@ -1452,6 +1463,20 @@ function updateCartItemQty(productId, delta) {
   if (window.SoundFX) SoundFX.playClick();
 }
 
+function handleCartMcInput() {
+  const input = document.getElementById('cart-guest-mc');
+  const val = (input?.value || '').trim();
+  const u = api.getUser();
+  const linkedMc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
+  const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+  const checkoutBtn = document.getElementById('btn-cart-checkout');
+  const items = api.cart.getItems();
+  const hasInvalidItem = items.some(it => it.isOwnedOrHigher);
+  if (checkoutBtn) {
+    checkoutBtn.disabled = (!linkedMc && !val && !isGuestOrAdmin) || hasInvalidItem;
+  }
+}
+
 function removeCartItem(productId) {
   api.cart.removeItem(productId);
   renderCartDrawer();
@@ -1465,11 +1490,17 @@ async function checkoutCart() {
   const u = api.getUser();
   const linkedMc = (u && (u.minecraft_username || u.minecraftUsername)) || '';
   const isGuestOrAdmin = u && (u.role === 'admin' || u.email?.startsWith('guest'));
+  const guestMc = (document.getElementById('cart-guest-mc')?.value || '').trim();
+  const finalMc = linkedMc || guestMc || '';
 
-  if (!linkedMc && !isGuestOrAdmin) {
-    if (typeof api.showToast === 'function') api.showToast('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!', 'error');
-    else alert('Vui lòng liên kết tài khoản Minecraft trước khi thanh toán!');
-    location.href = '/html/Account.html?redirect=/html/Store.html';
+  if (!finalMc && !isGuestOrAdmin) {
+    if (typeof api.showToast === 'function') api.showToast('Vui lòng nhập tên nhân vật Minecraft để nhận đồ!', 'error');
+    else alert('Vui lòng nhập tên nhân vật Minecraft để nhận đồ!');
+    const guestInput = document.getElementById('cart-guest-mc');
+    if (guestInput) {
+      guestInput.focus();
+      guestInput.style.borderColor = '#ef4444';
+    }
     return;
   }
 
@@ -1488,7 +1519,7 @@ async function checkoutCart() {
     const orderItems = items.map(it => ({ productId: it.productId, quantity: it.quantity }));
     const couponCode = cartAppliedCoupon ? cartAppliedCoupon.code : (document.getElementById('cart-coupon-input')?.value.trim() || '');
 
-    const res = await api.createOrder(orderItems, linkedMc, 'Mua giỏ hàng Đảo Tò Mò', 'qr', '', couponCode);
+    const res = await api.createOrder(orderItems, finalMc, 'Mua giỏ hàng Đảo Tò Mò', 'qr', '', couponCode);
     const order = (res && (res.order || res.data)) || res;
     if (!order) throw new Error('Không nhận được thông tin đơn hàng từ máy chủ.');
 
@@ -1526,6 +1557,7 @@ async function checkoutCart() {
 
     document.getElementById('modal-step-confirm').style.display = 'none';
     document.getElementById('modal-step-paid').style.display = 'block';
+    document.body.classList.add('modal-open');
     document.getElementById('modal').classList.add('open');
 
     if (window.ConfettiFX) ConfettiFX.fire();
@@ -1655,6 +1687,7 @@ function openBuyModal(productId, evt) {
 
   document.getElementById('modal-step-confirm').style.display = 'block';
   document.getElementById('modal-step-paid').style.display = 'none';
+  document.body.classList.add('modal-open');
   document.getElementById('modal').classList.add('open');
   if (window.SoundFX) SoundFX.playClick();
 }
@@ -1832,6 +1865,7 @@ function copyText(text, message) {
 
 function closeModal() {
   document.getElementById('modal').classList.remove('open');
+  document.body.classList.remove('modal-open');
   if (countdownInterval) clearInterval(countdownInterval);
   if (pollingInterval) clearInterval(pollingInterval);
 }
